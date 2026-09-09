@@ -14,6 +14,7 @@ const NAV_SECTIONS: {
     items: [
       { to: "/sts-analysis", label: "Competitor Analysis", icon: Radar, color: "#C084FC" },
       { to: "/vessel-overlap", label: "Vessel Overlap", icon: GitCompareArrows, color: "#F472B6" },
+      { to: "/vessel-lookup", label: "Vessel Lookup", icon: Search, color: "#38BDF8" },
     ],
   },
   {

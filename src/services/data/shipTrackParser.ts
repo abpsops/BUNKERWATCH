@@ -133,7 +133,7 @@ export function extractBunkeringEvents(rows: ShipTrackRow[]): BunkeringExtractio
 // AIS/ship-tracking timestamps are recorded in UTC; Fujairah operations run
 // on Asia/Dubai time (a fixed UTC+4 offset, no daylight saving), so convert
 // before splitting into date/time strings rather than showing raw UTC.
-function toDubaiDateTimeParts(date: Date): { date: string; time: string } {
+export function toDubaiDateTimeParts(date: Date): { date: string; time: string } {
   const shifted = new Date(date.getTime() + 4 * 60 * 60 * 1000)
   const y = shifted.getUTCFullYear()
   const mo = String(shifted.getUTCMonth() + 1).padStart(2, "0")

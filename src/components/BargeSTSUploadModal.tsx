@@ -55,6 +55,9 @@ export default function BargeSTSUploadModal({
   const [saved, setSaved] = useState<number | null>(null)
   const [skippedDupes, setSkippedDupes] = useState(0)
   const [busy, setBusy] = useState(false)
+  // Filters the PREVIEW TABLE only — Save still saves every row found,
+  // not just whatever the search currently matches.
+  const [vesselSearch, setVesselSearch] = useState("")
 
   const onFile = async (f: File) => {
     setFile(f)
@@ -89,6 +92,8 @@ export default function BargeSTSUploadModal({
 
   const genericKept = genericResults?.filter((r) => r.valid && r.keep) ?? []
   const previewOps: PreviewOp[] = mode === "shiptrack" ? shipTrackOps ?? [] : genericKept.map((r) => r.operation!)
+  const q = vesselSearch.trim().toLowerCase()
+  const visibleOps = q ? previewOps.filter((op) => op.receiving_vessel_name.toLowerCase().includes(q)) : previewOps
 
   const confirmSave = async () => {
     setBusy(true)
@@ -105,12 +110,20 @@ export default function BargeSTSUploadModal({
         className="w-full max-w-2xl max-h-[85vh] overflow-y-auto scrollbar-thin bg-ink-950 border border-ink-700 rounded-lg shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-ink-700">
-          <div>
+        <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-ink-700">
+          <div className="shrink-0">
             <div className="text-sm font-medium">{barge.name}</div>
             <div className="text-xs text-paper-500 font-mono">IMO {barge.imo} · {competitorName}</div>
           </div>
-          <button onClick={onClose} className="text-paper-500 hover:text-paper-300 focus-ring">
+          {previewOps.length > 0 && saved === null && (
+            <input
+              value={vesselSearch}
+              onChange={(e) => setVesselSearch(e.target.value)}
+              placeholder="Search vessel name…"
+              className="flex-1 max-w-xs bg-ink-900 border border-ink-600 rounded-md px-3 py-1.5 text-xs focus-ring"
+            />
+          )}
+          <button onClick={onClose} className="text-paper-500 hover:text-paper-300 focus-ring shrink-0">
             <X size={16} />
           </button>
         </div>
@@ -179,6 +192,11 @@ export default function BargeSTSUploadModal({
                     {(genericResults?.length ?? 0) - genericKept.length} other rows excluded (wrong type or invalid)
                   </span>
                 )}
+                {q && (
+                  <span className="text-paper-300">
+                    — showing {visibleOps.length} matching "{vesselSearch}"
+                  </span>
+                )}
               </div>
               <div className="rounded-md border border-ink-700 overflow-hidden max-h-64 overflow-y-auto scrollbar-thin">
                 <table className="w-full text-xs">
@@ -191,7 +209,7 @@ export default function BargeSTSUploadModal({
                     </tr>
                   </thead>
                   <tbody>
-                    {previewOps.map((op, i) => (
+                    {visibleOps.map((op, i) => (
                       <tr key={i} className="border-b border-ink-800">
                         <td className="px-3 py-1.5">{op.receiving_vessel_name}</td>
                         <td className="px-3 py-1.5">{formatDateDisplay(op.operation_date)}</td>
@@ -203,6 +221,13 @@ export default function BargeSTSUploadModal({
                       <tr>
                         <td colSpan={4} className="px-3 py-6 text-center text-paper-500">
                           No STS Bunkering events found in this file.
+                        </td>
+                      </tr>
+                    )}
+                    {previewOps.length > 0 && visibleOps.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="px-3 py-6 text-center text-paper-500">
+                          No vessel matches "{vesselSearch}".
                         </td>
                       </tr>
                     )}
