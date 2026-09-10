@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { Fragment, useEffect, useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useSearchParams } from "react-router-dom"
 import { Plus, X, AlertTriangle, FileSpreadsheet, FileText, CheckCircle2, RotateCcw } from "lucide-react"
@@ -10,6 +10,7 @@ import BargeSTSUploadModal from "@/components/BargeSTSUploadModal"
 import { exportToXlsx } from "@/lib/exportXlsx"
 import { exportToPdf, buildPdfSummary, buildDateRangeLabel, buildPdfCompetitorLocationBreakdown } from "@/lib/exportPdf"
 import { findOperationAnomalies, findOperationAnomalyDetails, vesselIdentityKey } from "@/lib/anomalies"
+import { REGION_ORDER, REGION_LABELS, regionForBargeOperations, type BargeRegion } from "@/lib/regions"
 import type { Barge } from "@/types"
 
 export default function Barges() {
@@ -32,6 +33,16 @@ export default function Barges() {
   const { data: competitors = [] } = useQuery({ queryKey: ["competitors"], queryFn: () => provider.getCompetitors() })
   const { data: barges = [] } = useQuery({ queryKey: ["barges"], queryFn: () => provider.getBarges() })
   const { data: operations = [] } = useQuery({ queryKey: ["operations-all"], queryFn: () => provider.getSTSOperations({}) })
+
+  // Grouped FUJ -> KFK -> OMAN -> no-location-data-yet. A barge's region
+  // is derived from its own operations (location lives on the operation,
+  // not the barge), so this naturally updates as more data is analysed.
+  // Within each region, barges keep their original relative order.
+  const regionSortedBarges = REGION_ORDER.flatMap((region) =>
+    barges
+      .filter((b) => regionForBargeOperations(operations.filter((o) => o.barge_id === b.id)) === region)
+      .map((b) => ({ barge: b, region }))
+  )
 
   const competitorName = (id: string) => competitors.find((c) => c.id === id)?.name ?? "—"
 
@@ -356,17 +367,25 @@ export default function Barges() {
               </tr>
             </thead>
             <tbody>
-              {barges.map((b) => {
+              {regionSortedBarges.map(({ barge: b, region }, i) => {
                 const s = bargeStats(b.id)
                 const pendingFile = pendingFiles[b.id]
+                const showRegionHeader = i === 0 || regionSortedBarges[i - 1].region !== region
                 return (
-                  <tr
-                    key={b.id}
-                    ref={(el) => { rowRefs.current[b.id] = el }}
-                    className={`border-b border-ink-800 hover:bg-ink-800/60 transition-colors ${
-                      highlightId === b.id ? "bg-signal-warn/10 ring-1 ring-inset ring-signal-warn/40" : ""
-                    }`}
-                  >
+                  <Fragment key={b.id}>
+                    {showRegionHeader && (
+                      <tr key={`region-${region}`} className="bg-ink-900/60">
+                        <td colSpan={7} className="px-4 py-1.5 text-[11px] font-semibold tracking-wide text-paper-300">
+                          {REGION_LABELS[region]}
+                        </td>
+                      </tr>
+                    )}
+                    <tr
+                      ref={(el) => { rowRefs.current[b.id] = el }}
+                      className={`border-b border-ink-800 hover:bg-ink-800/60 transition-colors ${
+                        highlightId === b.id ? "bg-signal-warn/10 ring-1 ring-inset ring-signal-warn/40" : ""
+                      }`}
+                    >
                     <td className="px-4 py-2.5 text-paper-300">{competitorName(b.competitor_id)}</td>
                     <td className="px-4 py-2.5">{b.name}</td>
                     <td className="px-4 py-2.5 font-mono text-paper-500">{b.imo}</td>
@@ -427,6 +446,7 @@ export default function Barges() {
                       </button>
                     </td>
                   </tr>
+                  </Fragment>
                 )
               })}
               {barges.length === 0 && (
