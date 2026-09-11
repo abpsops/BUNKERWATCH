@@ -5,7 +5,6 @@ import Competitors from "@/pages/Competitors/Competitors"
 import Barges from "@/pages/Barges/Barges"
 import Vessels from "@/pages/Vessels/Vessels"
 import STSAnalysis from "@/pages/STSAnalysis/STSAnalysis"
-import VesselOverlap from "@/pages/VesselOverlap/VesselOverlap"
 import VesselLookup from "@/pages/VesselLookup/VesselLookup"
 import Reports from "@/pages/Reports/Reports"
 import Login from "@/pages/Login/Login"
@@ -24,7 +23,6 @@ export default function App() {
             <Route path="/barges" element={<Barges />} />
             <Route path="/vessels" element={<Vessels />} />
             <Route path="/sts-analysis" element={<STSAnalysis />} />
-            <Route path="/vessel-overlap" element={<VesselOverlap />} />
             <Route path="/vessel-lookup" element={<VesselLookup />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="*" element={<Navigate to="/" replace />} />

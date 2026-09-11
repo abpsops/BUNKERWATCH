@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom"
 import { useState } from "react"
-import { LayoutDashboard, Radar, Building2, Sailboat, Ship, FileBarChart, Search, GitCompareArrows } from "lucide-react"
+import { LayoutDashboard, Radar, Building2, Sailboat, Ship, FileBarChart, Search } from "lucide-react"
 import GlobalSearch from "@/components/layout/GlobalSearch"
 import Logo from "@/components/ui/Logo"
 
@@ -13,7 +13,6 @@ const NAV_SECTIONS: {
     label: "Intelligence",
     items: [
       { to: "/sts-analysis", label: "Competitor Analysis", icon: Radar, color: "#C084FC" },
-      { to: "/vessel-overlap", label: "Vessel Overlap", icon: GitCompareArrows, color: "#F472B6" },
       { to: "/vessel-lookup", label: "Vessel Lookup", icon: Search, color: "#38BDF8" },
     ],
   },

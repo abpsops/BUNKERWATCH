@@ -90,6 +90,44 @@ export default function Dashboard() {
     .slice(-10)
     .map(([, row]) => row)
 
+  // Month-over-month bunkering change per competitor, in plain language.
+  const now = new Date()
+  const thisMonthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`
+  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const prevMonthStart = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, "0")}-01`
+  const growth = competitors
+    .map((c) => {
+      const thisMonthCount = operations.filter(
+        (o) => o.competitor_id === c.id && o.operation_type === "STS_BUNKERING" && o.operation_date >= thisMonthStart
+      ).length
+      const prevMonthCount = operations.filter(
+        (o) =>
+          o.competitor_id === c.id &&
+          o.operation_type === "STS_BUNKERING" &&
+          o.operation_date >= prevMonthStart &&
+          o.operation_date < thisMonthStart
+      ).length
+      const pctChange = prevMonthCount > 0 ? Math.round(((thisMonthCount - prevMonthCount) / prevMonthCount) * 100) : null
+      return { id: c.id, name: c.name, thisMonthCount, prevMonthCount, pctChange }
+    })
+    .filter((g) => g.thisMonthCount > 0 || g.prevMonthCount > 0)
+    .sort((a, b) => (b.pctChange ?? -999) - (a.pctChange ?? -999))
+    .slice(0, 5)
+
+  // Barges with real history that have gone quiet — no bunkering in 30+ days.
+  const thirtyDaysAgo = resolvePreset("last30").from
+  const quietBarges = barges
+    .map((b) => {
+      const bargeOps = operations.filter((o) => o.barge_id === b.id && o.operation_type === "STS_BUNKERING")
+      if (bargeOps.length === 0) return null
+      const lastSeen = bargeOps.reduce((max, o) => (o.operation_date > max ? o.operation_date : max), bargeOps[0].operation_date)
+      if (lastSeen >= thirtyDaysAgo) return null
+      const competitor = competitors.find((c) => c.id === b.competitor_id)
+      return { id: b.id, name: b.name, competitorName: competitor?.name ?? "—", lastSeen }
+    })
+    .filter((b): b is NonNullable<typeof b> => b !== null)
+    .sort((a, b) => (a.lastSeen < b.lastSeen ? -1 : 1))
+
   return (
     <div>
       <PageHeader
@@ -187,6 +225,63 @@ export default function Dashboard() {
             </BarChart>
           </ResponsiveContainer>
         )}
+      </div>
+
+      <div className="px-6 mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="rounded-xl glass p-4">
+          <div className="text-xs font-medium text-paper-500 mb-3">
+            Who's Growing — This Month vs Last Month
+          </div>
+          {growth.length === 0 ? (
+            <p className="text-sm text-paper-500 py-6 text-center">Not enough history yet to compare months.</p>
+          ) : (
+            <div className="space-y-2.5">
+              {growth.map((g) => (
+                <div key={g.id} className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: colorForCompetitor(g.id) }} />
+                    {g.name}
+                  </span>
+                  <span
+                    className={`font-mono text-xs font-semibold ${
+                      g.pctChange === null
+                        ? "text-paper-500"
+                        : g.pctChange > 0
+                          ? "text-signal-ok"
+                          : g.pctChange < 0
+                            ? "text-signal-crit"
+                            : "text-paper-500"
+                    }`}
+                  >
+                    {g.pctChange === null
+                      ? `New this month (${g.thisMonthCount})`
+                      : `${g.pctChange > 0 ? "+" : ""}${g.pctChange}% (${g.prevMonthCount} → ${g.thisMonthCount})`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-xl glass p-4">
+          <div className="text-xs font-medium text-paper-500 mb-3">
+            Quiet Barges — No Bunkering in 30+ Days
+          </div>
+          {quietBarges.length === 0 ? (
+            <p className="text-sm text-paper-500 py-6 text-center">Every barge with history has been active in the last 30 days.</p>
+          ) : (
+            <div className="space-y-2 max-h-52 overflow-y-auto scrollbar-thin">
+              {quietBarges.map((b) => (
+                <div key={b.id} className="flex items-center justify-between text-sm">
+                  <span>
+                    {b.name} <span className="text-paper-500 text-xs">· {b.competitorName}</span>
+                  </span>
+                  <span className="font-mono text-xs text-signal-warn">since {formatDateDisplay(b.lastSeen)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="px-6 mt-4 mb-8 flex items-center justify-between text-xs text-paper-500">
