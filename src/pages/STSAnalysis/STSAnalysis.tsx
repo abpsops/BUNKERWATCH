@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react"
+import { Link } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { Download, AlertTriangle } from "lucide-react"
 import { getDataProvider } from "@/services/data"
@@ -246,7 +247,14 @@ export default function STSAnalysis() {
                       <td className="px-4 py-2.5">{o.barge_name}</td>
                       <td className="px-4 py-2.5 text-paper-300">{o.location ?? "N/A"}</td>
                       <td className="px-4 py-2.5"><OperationBadge type={o.operation_type} /></td>
-                      <td className="px-4 py-2.5 font-medium">{o.receiving_vessel_name}</td>
+                      <td className="px-4 py-2.5 font-medium">
+                        <Link
+                          to={o.receiving_vessel_imo ? `/vessels?imo=${encodeURIComponent(o.receiving_vessel_imo)}` : `/vessels?name=${encodeURIComponent(o.receiving_vessel_name)}`}
+                          className="hover:text-brand-600 hover:underline"
+                        >
+                          {o.receiving_vessel_name}
+                        </Link>
+                      </td>
                       <td className="px-4 py-2.5 font-mono text-paper-500">{o.receiving_vessel_imo || "N/A"}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-paper-500">
                         {o.duration_minutes ? `${o.duration_minutes}m` : "—"}
@@ -277,7 +285,14 @@ export default function STSAnalysis() {
               <tbody>
                 {uniqueVesselRows.map((v) => (
                   <tr key={v.imo || v.name} className="border-b border-ink-800 hover:bg-ink-800/60">
-                    <td className="px-4 py-2.5 font-medium">{v.name}</td>
+                    <td className="px-4 py-2.5 font-medium">
+                      <Link
+                        to={v.imo ? `/vessels?imo=${encodeURIComponent(v.imo)}` : `/vessels?name=${encodeURIComponent(v.name)}`}
+                        className="hover:text-brand-600 hover:underline"
+                      >
+                        {v.name}
+                      </Link>
+                    </td>
                     <td className="px-4 py-2.5 font-mono text-paper-500">{v.imo || "N/A"}</td>
                     <td className="px-4 py-2.5 text-right font-mono">{v.count}</td>
                     <td className="px-4 py-2.5 text-xs">{formatDateDisplay(v.first)}</td>

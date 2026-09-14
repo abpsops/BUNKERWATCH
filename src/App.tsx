@@ -6,6 +6,7 @@ import Barges from "@/pages/Barges/Barges"
 import Vessels from "@/pages/Vessels/Vessels"
 import STSAnalysis from "@/pages/STSAnalysis/STSAnalysis"
 import VesselLookup from "@/pages/VesselLookup/VesselLookup"
+import BargeMap from "@/pages/BargeMap/BargeMap"
 import Reports from "@/pages/Reports/Reports"
 import Login from "@/pages/Login/Login"
 import { useAuth } from "@/hooks/useAuth"
@@ -24,6 +25,7 @@ export default function App() {
             <Route path="/vessels" element={<Vessels />} />
             <Route path="/sts-analysis" element={<STSAnalysis />} />
             <Route path="/vessel-lookup" element={<VesselLookup />} />
+            <Route path="/barge-map" element={<BargeMap />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
