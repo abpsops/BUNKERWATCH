@@ -48,6 +48,13 @@ export interface PdfExportOptions {
    */
   firstColumnIsRowNumber?: boolean
   /**
+   * 0-based column index containing a short note/tag (e.g. "OWN BARGE").
+   * Non-empty cells in this column get bold purple text so the tag is
+   * easy to spot scanning down the table, without needing its own
+   * dedicated color scheme like the flagged-row highlight.
+   */
+  noteColumnIndex?: number
+  /**
    * Plain-language explanation for each flagged pair, rendered on its own
    * page right after the main table — which two rows, how close together
    * they were, and why that specific pattern is implausible. Without
@@ -109,6 +116,14 @@ export function exportToPdf(
       if (data.section === "body" && flagged.has(data.row.index)) {
         data.cell.styles.fillColor = [255, 236, 140]
         data.cell.styles.textColor = [110, 78, 0]
+      } else if (
+        data.section === "body" &&
+        options?.noteColumnIndex !== undefined &&
+        data.column.index === options.noteColumnIndex &&
+        String(data.cell.raw ?? "").trim() !== ""
+      ) {
+        data.cell.styles.textColor = [124, 58, 237]
+        data.cell.styles.fontStyle = "bold"
       }
     },
     didDrawCell: (data) => {

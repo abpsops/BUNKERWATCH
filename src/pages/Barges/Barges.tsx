@@ -10,7 +10,8 @@ import BargeSTSUploadModal from "@/components/BargeSTSUploadModal"
 import { exportToXlsx } from "@/lib/exportXlsx"
 import { exportToPdf, buildPdfSummary, buildDateRangeLabel, buildPdfCompetitorLocationBreakdown } from "@/lib/exportPdf"
 import { findOperationAnomalies, findOperationAnomalyDetails, vesselIdentityKey } from "@/lib/anomalies"
-import { REGION_ORDER, REGION_LABELS, regionForBargeOperations, type BargeRegion } from "@/lib/regions"
+import { buildOwnBargeIndex, isOwnBargeSupply } from "@/lib/ownBarge"
+import { REGION_ORDER, REGION_LABELS, REGION_SHORT_LABELS, REGION_COLORS, regionForBargeOperations, type BargeRegion } from "@/lib/regions"
 import type { Barge } from "@/types"
 
 export default function Barges() {
@@ -22,6 +23,8 @@ export default function Barges() {
   const [competitorId, setCompetitorId] = useState("")
   const [bulkText, setBulkText] = useState("")
   const [namePrefix, setNamePrefix] = useState("Barge")
+  // Which regions are currently shown — starts with every region visible.
+  const [activeRegions, setActiveRegions] = useState<Set<BargeRegion>>(new Set(REGION_ORDER))
 
   // Per-barge: the file attached via "Upload" but not yet analysed.
   const [pendingFiles, setPendingFiles] = useState<Record<string, File>>({})
@@ -43,8 +46,27 @@ export default function Barges() {
       .filter((b) => regionForBargeOperations(operations.filter((o) => o.barge_id === b.id)) === region)
       .map((b) => ({ barge: b, region }))
   )
+  const visibleRegionBarges = regionSortedBarges.filter(({ region }) => activeRegions.has(region))
+
+  const toggleRegion = (region: BargeRegion) => {
+    setActiveRegions((prev) => {
+      const next = new Set(prev)
+      if (next.has(region)) next.delete(region)
+      else next.add(region)
+      return next
+    })
+  }
 
   const competitorName = (id: string) => competitors.find((c) => c.id === id)?.name ?? "—"
+
+  // A barge IS a vessel — so it's possible for the "vessel" in a supply
+  // record to actually be one of the SAME competitor's own other barges,
+  // not a genuine third-party client. Flagged as "OWN BARGE" in reports
+  // rather than counted as a normal competitive supply.
+  const ownBargeIndex = buildOwnBargeIndex(barges)
+  const isOwnBarge = (o: { competitor_id: string; receiving_vessel_imo: string; receiving_vessel_name: string }) =>
+    isOwnBargeSupply(o, ownBargeIndex)
+
 
   // Grouped by COMPETITOR first, then by barge within that competitor, so
   // every barge belonging to e.g. OMTI sits in one contiguous block — never
@@ -76,6 +98,7 @@ export default function Barges() {
         Date: o.operation_date,
         Time: o.start_time ?? "",
         Location: o.location ?? "",
+        Note: isOwnBarge(o) ? "OWN BARGE" : "",
       }))
     )
   }
@@ -120,7 +143,7 @@ export default function Barges() {
     exportToPdf(
       "bunkerwatch_all_barges_sts_bunkering.pdf",
       "BUNKERWATCH — TRACKED BUNKERING OPS",
-      ["#", "Competitor", "Barge", "Barge IMO", "Vessel", "Date", "Time", "Location"],
+      ["#", "Competitor", "Barge", "Barge IMO", "Vessel", "Date", "Time", "Location", "Note"],
       rows.map((o, i) => [
         i + 1,
         o.competitor_name,
@@ -130,12 +153,14 @@ export default function Barges() {
         formatDateDisplay(o.operation_date),
         o.start_time ?? "",
         o.location ?? "",
+        isOwnBarge(o) ? "OWN BARGE" : "",
       ]),
       {
         dateRangeLabel,
         groupBreakAfterRows,
         flaggedRows,
         firstColumnIsRowNumber: true,
+        noteColumnIndex: 8,
         anomalyExplanations,
         summary: {
           byCompetitor: byCompetitor.rows,
@@ -353,6 +378,34 @@ export default function Barges() {
           </div>
         )}
 
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <span className="text-xs font-medium text-paper-500 mr-1">Location:</span>
+          {REGION_ORDER.map((region) => {
+            const count = regionSortedBarges.filter((r) => r.region === region).length
+            const active = activeRegions.has(region)
+            return (
+              <button
+                key={region}
+                onClick={() => toggleRegion(region)}
+                style={active ? { background: REGION_COLORS[region], borderColor: REGION_COLORS[region] } : { borderColor: REGION_COLORS[region] }}
+                className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                  active ? "text-white" : "text-paper-300 hover:bg-ink-800"
+                }`}
+              >
+                {REGION_SHORT_LABELS[region]} ({count})
+              </button>
+            )
+          })}
+          {activeRegions.size < REGION_ORDER.length && (
+            <button
+              onClick={() => setActiveRegions(new Set(REGION_ORDER))}
+              className="text-xs text-paper-500 hover:text-paper-300 underline ml-1"
+            >
+              Reset filter
+            </button>
+          )}
+        </div>
+
         <div className="rounded-xl glass overflow-hidden">
           <table className="w-full text-sm">
             <thead>
@@ -367,10 +420,10 @@ export default function Barges() {
               </tr>
             </thead>
             <tbody>
-              {regionSortedBarges.map(({ barge: b, region }, i) => {
+              {visibleRegionBarges.map(({ barge: b, region }, i) => {
                 const s = bargeStats(b.id)
                 const pendingFile = pendingFiles[b.id]
-                const showRegionHeader = i === 0 || regionSortedBarges[i - 1].region !== region
+                const showRegionHeader = i === 0 || visibleRegionBarges[i - 1].region !== region
                 return (
                   <Fragment key={b.id}>
                     {showRegionHeader && (
@@ -453,6 +506,13 @@ export default function Barges() {
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-paper-500 text-sm">
                     No barges tracked yet.
+                  </td>
+                </tr>
+              )}
+              {barges.length > 0 && visibleRegionBarges.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-paper-500 text-sm">
+                    No barges in the selected location filter.
                   </td>
                 </tr>
               )}

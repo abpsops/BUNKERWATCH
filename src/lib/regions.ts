@@ -1,13 +1,32 @@
-export type BargeRegion = "FUJ" | "KFK" | "OMAN" | "UNASSIGNED"
+export type BargeRegion = "FUJ" | "KFK" | "OMAN" | "OUT_OF_AREA" | "UNASSIGNED"
 
-/** Display order requested: Fujairah, then Khor Fakkan, then everywhere in Oman, then anything with no location data at all. */
-export const REGION_ORDER: BargeRegion[] = ["FUJ", "KFK", "OMAN", "UNASSIGNED"]
+/** Display order requested: Fujairah, then Khor Fakkan, then everywhere in Oman, then known-to-be-elsewhere, then anything with no location data at all. */
+export const REGION_ORDER: BargeRegion[] = ["FUJ", "KFK", "OMAN", "OUT_OF_AREA", "UNASSIGNED"]
 
 export const REGION_LABELS: Record<BargeRegion, string> = {
   FUJ: "FUJ — Fujairah",
   KFK: "KFK — Khor Fakkan",
   OMAN: "OMAN — Sohar / Salalah / Shinas / Al Duqm",
+  OUT_OF_AREA: "Currently Out of Area",
   UNASSIGNED: "No Location Data Yet",
+}
+
+/** Short label for filter chips — same regions, tighter text. */
+export const REGION_SHORT_LABELS: Record<BargeRegion, string> = {
+  FUJ: "FUJ",
+  KFK: "KFK",
+  OMAN: "OMAN",
+  OUT_OF_AREA: "Out of Area",
+  UNASSIGNED: "No Data",
+}
+
+/** One accent color per region, reused by the filter chips and any badges. */
+export const REGION_COLORS: Record<BargeRegion, string> = {
+  FUJ: "#2563EB",
+  KFK: "#0D9488",
+  OMAN: "#EA580C",
+  OUT_OF_AREA: "#D97706",
+  UNASSIGNED: "#6B7280",
 }
 
 // Substring match, case-insensitive — covers every Omani port named plus a
@@ -15,10 +34,15 @@ export const REGION_LABELS: Record<BargeRegion, string> = {
 // one of these to be classified correctly.
 const OMAN_PORT_HINTS = ["sohar", "salalah", "shinas", "duqm", "oman"]
 
-/** Classifies a single location string (e.g. from one STSOperation) into a region. */
+/** Classifies a single location string (e.g. from one STSOperation, or a real tracking sheet's PORT column) into a region. */
 export function regionForLocation(location: string | null | undefined): BargeRegion {
   if (!location) return "UNASSIGNED"
-  const l = location.toLowerCase()
+  const l = location.toLowerCase().trim()
+  // "Currently out of FUJ" (the real status phrase used in barge tracking
+  // sheets) means known-to-be-elsewhere, which is a real, distinct status
+  // from "we simply have no data" — check this before the FUJ match below,
+  // since it does contain "fuj" as a substring.
+  if (l.includes("out of")) return "OUT_OF_AREA"
   if (l.includes("fujairah") || l === "fuj") return "FUJ"
   if (l.includes("khor fakkan") || l === "kfk") return "KFK"
   if (OMAN_PORT_HINTS.some((hint) => l.includes(hint))) return "OMAN"

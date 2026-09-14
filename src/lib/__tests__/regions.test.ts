@@ -24,6 +24,12 @@ describe("regionForLocation", () => {
     expect(regionForLocation("SOHAR")).toBe("OMAN")
   })
 
+  it("classifies the real 'Currently out of FUJ' status phrase as OUT_OF_AREA, not FUJ", () => {
+    expect(regionForLocation("Currently out of FUJ")).toBe("OUT_OF_AREA")
+    expect(regionForLocation("currently out of fuj")).toBe("OUT_OF_AREA")
+    expect(regionForLocation("Out of Khor Fakkan")).toBe("OUT_OF_AREA")
+  })
+
   it("falls back to UNASSIGNED for null, empty, or unrecognized locations", () => {
     expect(regionForLocation(null)).toBe("UNASSIGNED")
     expect(regionForLocation(undefined)).toBe("UNASSIGNED")
@@ -54,7 +60,7 @@ describe("regionForBargeOperations", () => {
 })
 
 describe("REGION_ORDER", () => {
-  it("is exactly FUJ, then KFK, then OMAN, then UNASSIGNED", () => {
-    expect(REGION_ORDER).toEqual(["FUJ", "KFK", "OMAN", "UNASSIGNED"])
+  it("is exactly FUJ, then KFK, then OMAN, then OUT_OF_AREA, then UNASSIGNED", () => {
+    expect(REGION_ORDER).toEqual(["FUJ", "KFK", "OMAN", "OUT_OF_AREA", "UNASSIGNED"])
   })
 })
