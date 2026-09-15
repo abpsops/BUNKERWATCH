@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { Download } from "lucide-react"
+import { Download, DatabaseBackup } from "lucide-react"
 import { getDataProvider } from "@/services/data"
 import PageHeader from "@/components/ui/PageHeader"
 import DateRangeFilter from "@/components/filters/DateRangeFilter"
@@ -11,6 +11,7 @@ import { vesselIdentityKey } from "@/lib/anomalies"
 export default function Reports() {
   const provider = getDataProvider()
   const { data: competitors = [] } = useQuery({ queryKey: ["competitors"], queryFn: () => provider.getCompetitors() })
+  const { data: barges = [] } = useQuery({ queryKey: ["barges"], queryFn: () => provider.getBarges() })
   const { data: operations = [] } = useQuery({ queryKey: ["operations-all"], queryFn: () => provider.getSTSOperations({}) })
 
   const defaultRange = resolvePreset("last30")
@@ -18,6 +19,17 @@ export default function Reports() {
   const [dateTo, setDateTo] = useState(defaultRange.to)
 
   const inRange = (op: (typeof operations)[number]) => isWithinRange(op.operation_date, dateFrom, dateTo)
+
+  const fullDataBackup = () => {
+    const payload = { competitors, barges, operations, exportedAt: new Date().toISOString() }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `bunkerwatch_full_backup_${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   const competitorActivityReport = () => {
     const rows = competitors.map((c) => {
@@ -77,6 +89,26 @@ export default function Reports() {
       <div className="px-6">
         <div className="rounded-xl glass p-4 mb-4 inline-block">
           <DateRangeFilter from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t) }} />
+        </div>
+
+        <div className="rounded-xl glass p-4 mb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-display text-base font-semibold flex items-center gap-2">
+                <DatabaseBackup size={16} /> Full Data Backup
+              </div>
+              <p className="mt-1 text-xs text-paper-500">
+                Every competitor, barge, and STS record — everything, no date filter. Use this before migrating
+                to a different backend.
+              </p>
+            </div>
+            <button
+              onClick={fullDataBackup}
+              className="flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:brightness-110 transition-all focus-ring shrink-0"
+            >
+              <Download size={13} /> Download Full Backup (JSON)
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
