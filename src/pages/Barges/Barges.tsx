@@ -64,7 +64,7 @@ export default function Barges() {
   // not a genuine third-party client. Flagged as "OWN BARGE" in reports
   // rather than counted as a normal competitive supply.
   const ownBargeIndex = buildOwnBargeIndex(barges)
-  const isOwnBarge = (o: { competitor_id: string; receiving_vessel_imo: string; receiving_vessel_name: string }) =>
+  const isOwnBarge = (o: { competitor_id: string; receiving_vessel_name: string }) =>
     isOwnBargeSupply(o, ownBargeIndex)
 
 

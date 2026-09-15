@@ -93,13 +93,25 @@ function opTimestamp(op: Pick<STSOperation, "operation_date" | "start_time">): n
  * rather than compared as a raw string. This is purely for matching;
  * displayed vessel names elsewhere in the app are untouched.
  */
-export function vesselIdentityKey(op: Pick<STSOperation, "receiving_vessel_imo" | "receiving_vessel_name">): string {
-  if (op.receiving_vessel_imo) return op.receiving_vessel_imo.trim()
-  return op.receiving_vessel_name
+/**
+ * Normalizes just the name side of a vessel identity — collapses
+ * non-breaking spaces, trims, collapses internal whitespace runs, and
+ * uppercases. Exposed separately from vesselIdentityKey() because some
+ * comparisons (see ownBarge.ts) specifically need "same name" regardless
+ * of whether either side happens to carry an IMO, rather than
+ * vesselIdentityKey's IMO-takes-precedence behavior.
+ */
+export function normalizeVesselName(name: string): string {
+  return name
     .replace(/\u00A0/g, " ") // non-breaking space -> regular space
     .trim()
     .replace(/\s+/g, " ")
     .toUpperCase()
+}
+
+export function vesselIdentityKey(op: Pick<STSOperation, "receiving_vessel_imo" | "receiving_vessel_name">): string {
+  if (op.receiving_vessel_imo) return op.receiving_vessel_imo.trim()
+  return normalizeVesselName(op.receiving_vessel_name)
 }
 
 /** "125 minutes" -> "2h 5m" / "45 minutes" -> "45m" / "180 minutes" -> "3h" */

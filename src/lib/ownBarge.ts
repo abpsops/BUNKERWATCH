@@ -1,4 +1,4 @@
-import { vesselIdentityKey } from "@/lib/anomalies"
+import { normalizeVesselName } from "@/lib/anomalies"
 
 /**
  * A barge IS a vessel — so the "vessel" being supplied in an operation
@@ -7,16 +7,22 @@ import { vesselIdentityKey } from "@/lib/anomalies"
  * keys per competitor, scoped by competitor so a different competitor
  * happening to name a barge the same thing doesn't get flagged.
  *
- * Matching is name-only by design: real operations never carry a vessel
- * IMO (see vesselIdentityKey's own comment), so comparing against a
- * barge's actual IMO would never line up with an operation's key.
+ * Matching is by NAME only, deliberately bypassing vesselIdentityKey's
+ * usual IMO-takes-precedence behavior. The AIS-narrative import path
+ * never supplies a vessel IMO, but the generic CSV import path can (if
+ * the sheet has a "Receiving IMO" column) — and when it does, that IMO
+ * belongs to the receiving vessel's own real-world registry entry, which
+ * will never equal the barge's own separate real IMO even when the two
+ * happen to share a name. Comparing by name only is what actually
+ * answers "is this the same named asset", regardless of which import
+ * path produced the record or what IMO (if any) it happened to carry.
  */
 export function buildOwnBargeIndex(
   barges: { competitor_id: string; name: string }[]
 ): Map<string, Set<string>> {
   const index = new Map<string, Set<string>>()
   barges.forEach((b) => {
-    const key = vesselIdentityKey({ receiving_vessel_imo: "", receiving_vessel_name: b.name })
+    const key = normalizeVesselName(b.name)
     if (!index.has(b.competitor_id)) index.set(b.competitor_id, new Set())
     index.get(b.competitor_id)!.add(key)
   })
@@ -25,8 +31,8 @@ export function buildOwnBargeIndex(
 
 /** True if this operation's supplied vessel is one of the SAME competitor's own barges. */
 export function isOwnBargeSupply(
-  op: { competitor_id: string; receiving_vessel_imo: string; receiving_vessel_name: string },
+  op: { competitor_id: string; receiving_vessel_name: string },
   ownBargeIndex: Map<string, Set<string>>
 ): boolean {
-  return ownBargeIndex.get(op.competitor_id)?.has(vesselIdentityKey(op)) ?? false
+  return ownBargeIndex.get(op.competitor_id)?.has(normalizeVesselName(op.receiving_vessel_name)) ?? false
 }
