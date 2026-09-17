@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom"
 import { useState } from "react"
-import { LayoutDashboard, Radar, Building2, Sailboat, Ship, FileBarChart, Search, MapPin } from "lucide-react"
+import { LayoutDashboard, Radar, Building2, Sailboat, Ship, FileBarChart, Search, MapPin, Target } from "lucide-react"
 import GlobalSearch from "@/components/layout/GlobalSearch"
 import Logo from "@/components/ui/Logo"
 
@@ -22,6 +22,7 @@ const NAV_SECTIONS: {
     items: [
       { to: "/competitors", label: "Competitors", icon: Building2, color: "#22D3EE" },
       { to: "/barges", label: "Barges", icon: Sailboat, color: "#2DD4BF" },
+      { to: "/track-fko", label: "Track -FKO", icon: Target, color: "#F472B6" },
       { to: "/vessels", label: "Vessels", icon: Ship, color: "#4ADE80" },
     ],
   },

@@ -3,6 +3,7 @@ import DashboardLayout from "@/layouts/DashboardLayout"
 import Dashboard from "@/pages/Dashboard/Dashboard"
 import Competitors from "@/pages/Competitors/Competitors"
 import Barges from "@/pages/Barges/Barges"
+import TrackFKO from "@/pages/TrackFKO/TrackFKO"
 import Vessels from "@/pages/Vessels/Vessels"
 import STSAnalysis from "@/pages/STSAnalysis/STSAnalysis"
 import VesselLookup from "@/pages/VesselLookup/VesselLookup"
@@ -22,6 +23,7 @@ export default function App() {
             <Route path="/competitors" element={<Competitors />} />
             <Route path="/competitors/:id" element={<Competitors />} />
             <Route path="/barges" element={<Barges />} />
+            <Route path="/track-fko" element={<TrackFKO />} />
             <Route path="/vessels" element={<Vessels />} />
             <Route path="/sts-analysis" element={<STSAnalysis />} />
             <Route path="/vessel-lookup" element={<VesselLookup />} />
