@@ -176,6 +176,21 @@ describe("vesselIdentityKey", () => {
     expect(a).toBe(c)
   })
 
+  it("strips a trailing parenthetical IMO baked into the narrative text (real format: 'AMAL(9239953)' or 'AL MIRA (9399973)')", () => {
+    const clean = vesselIdentityKey({ receiving_vessel_imo: "", receiving_vessel_name: "AMAL" })
+    const withImoSuffix = vesselIdentityKey({ receiving_vessel_imo: "", receiving_vessel_name: "AMAL(9239953)" })
+    const withSpacedImoSuffix = vesselIdentityKey({ receiving_vessel_imo: "", receiving_vessel_name: "AL MIRA (9399973)" })
+    const cleanTwoWord = vesselIdentityKey({ receiving_vessel_imo: "", receiving_vessel_name: "AL MIRA" })
+    expect(withImoSuffix).toBe(clean)
+    expect(withSpacedImoSuffix).toBe(cleanTwoWord)
+  })
+
+  it("normalizes hyphens/periods/slashes to spaces so punctuation variants match", () => {
+    const a = vesselIdentityKey({ receiving_vessel_imo: "", receiving_vessel_name: "AL-MIRA" })
+    const b = vesselIdentityKey({ receiving_vessel_imo: "", receiving_vessel_name: "AL MIRA" })
+    expect(a).toBe(b)
+  })
+
   it("prefers IMO over name when an IMO is present", () => {
     const key = vesselIdentityKey({ receiving_vessel_imo: "9612345", receiving_vessel_name: "OCTA DIVINE" })
     expect(key).toBe("9612345")

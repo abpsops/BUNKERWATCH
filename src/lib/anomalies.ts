@@ -104,6 +104,15 @@ function opTimestamp(op: Pick<STSOperation, "operation_date" | "start_time">): n
 export function normalizeVesselName(name: string): string {
   return name
     .replace(/\u00A0/g, " ") // non-breaking space -> regular space
+    // Real AIS narrative text often reads "...Bunkering with AMAL(9239953)"
+    // or "AL MIRA (9399973)" — the parser captures everything after
+    // "with " verbatim, so a trailing "(IMO)" (or any parenthetical
+    // aside) can end up baked into the name. Strip it before comparing,
+    // since a barge's own stored name is never suffixed that way.
+    .replace(/\([^)]*\)/g, " ")
+    // Normalize common separators (hyphens, periods, slashes) to spaces
+    // so "AL-MIRA" / "AL.MIRA" / "AL/MIRA" all compare equal to "AL MIRA".
+    .replace(/[.\-_/]/g, " ")
     .trim()
     .replace(/\s+/g, " ")
     .toUpperCase()

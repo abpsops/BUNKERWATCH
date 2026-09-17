@@ -40,6 +40,12 @@ describe("buildOwnBargeIndex / isOwnBargeSupply", () => {
     expect(isOwnBargeSupply(op, index)).toBe(false)
   })
 
+  it("REGRESSION: matches even when the operation's vessel name has a parenthetical IMO baked in from AIS narrative text ('AMAL(9239953)' vs stored barge name 'Amal')", () => {
+    const index = buildOwnBargeIndex(barges)
+    const op = { competitor_id: "omti", receiving_vessel_name: "AMAL(9239953)" }
+    expect(isOwnBargeSupply(op, index)).toBe(true)
+  })
+
   it("REGRESSION: still matches by name even when the caller also has a receiving_vessel_imo field set (generic CSV import path can populate a real one)", () => {
     // Real-world bug: "Zuma" supplied a vessel named "AMAL" (OMTI's own
     // barge). The generic CSV import path can attach a real, unrelated
