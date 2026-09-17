@@ -7,7 +7,9 @@ import BargeSTSUploadModal from "@/components/BargeSTSUploadModal"
 import { isValidIMO } from "@/lib/imo"
 import { formatDateDisplay } from "@/lib/dates"
 import { exportToXlsx } from "@/lib/exportXlsx"
-import { exportToPdf } from "@/lib/exportPdf"
+import { exportToPdf, buildPdfSummary, buildDateRangeLabel, buildPdfCompetitorLocationBreakdown } from "@/lib/exportPdf"
+import { findOperationAnomalies, findOperationAnomalyDetails, vesselIdentityKey } from "@/lib/anomalies"
+import { buildOwnBargeIndex, isOwnBargeSupply } from "@/lib/ownBarge"
 import { TRACK_FKO_GROUPS, type TrackFkoPort } from "@/lib/trackFko"
 import type { Barge } from "@/types"
 
@@ -54,6 +56,13 @@ export default function TrackFKO() {
     return { ops: ops.length, latest }
   }
 
+  // Same "OWN BARGE" flagging used on the Barges page — one of this
+  // competitor's OTHER barges showing up as the "receiving vessel" isn't
+  // a genuine third-party client, so it's noted rather than counted as a
+  // normal competitive supply.
+  const ownBargeIndex = buildOwnBargeIndex(barges)
+  const isOwnBarge = (o: { competitor_id: string; receiving_vessel_name: string }) => isOwnBargeSupply(o, ownBargeIndex)
+
   const onAttachFile = (bargeId: string, file: File) => {
     setPendingFiles((prev) => ({ ...prev, [bargeId]: file }))
   }
@@ -68,17 +77,48 @@ export default function TrackFKO() {
     qc.invalidateQueries({ queryKey: ["barges"] })
   }
 
-  // Single-vessel PDF — that barge's analysed bunkering events only.
+  // Single-vessel PDF — that barge's analysed bunkering events only, with
+  // the same anomaly flagging, gap reasons, and OWN BARGE notes as the
+  // main Barges report. Scoped to just this barge, so only the "same
+  // barge, different vessel, too fast" pattern can be caught here — the
+  // "same vessel, different barge" pattern needs the other barge's data
+  // too, which is what "Download All (PDF)" below checks across every
+  // tracked vessel at once.
   const downloadVesselPdf = (b: Barge) => {
     const rows = operations
       .filter((o) => o.barge_id === b.id && o.operation_type === "STS_BUNKERING")
       .slice()
       .sort((a, c) => `${a.operation_date} ${a.start_time ?? ""}`.localeCompare(`${c.operation_date} ${c.start_time ?? ""}`))
+    const dateRangeLabel = buildDateRangeLabel(rows.map((o) => o.operation_date), formatDateDisplay)
+    const flaggedRows = Array.from(findOperationAnomalies(rows))
+    const anomalyExplanations = findOperationAnomalyDetails(rows).map((d) => ({
+      rowNumbers: [d.indices[0] + 1, d.indices[1] + 1] as [number, number],
+      gapLabel: d.gapLabel,
+      summary: d.summary,
+    }))
+
     exportToPdf(
       `bunkerwatch_track_fko_${b.name.replace(/\s+/g, "_").toLowerCase()}.pdf`,
       `BUNKERWATCH — TRACK -FKO — ${b.name}`,
-      ["#", "Company", "Vessel Served", "Date", "Time", "Location"],
-      rows.map((o, i) => [i + 1, competitorName(b.competitor_id), o.receiving_vessel_name, formatDateDisplay(o.operation_date), o.start_time ?? "", o.location ?? ""])
+      ["#", "Company", "Barge", "Barge IMO", "Vessel", "Date", "Time", "Location", "Note"],
+      rows.map((o, i) => [
+        i + 1,
+        competitorName(b.competitor_id),
+        b.name,
+        b.imo,
+        o.receiving_vessel_name,
+        formatDateDisplay(o.operation_date),
+        o.start_time ?? "",
+        o.location ?? "",
+        isOwnBarge(o) ? "OWN BARGE" : "",
+      ]),
+      {
+        dateRangeLabel,
+        flaggedRows,
+        anomalyExplanations,
+        firstColumnIsRowNumber: true,
+        noteColumnIndex: 8,
+      }
     )
   }
 
@@ -94,12 +134,29 @@ export default function TrackFKO() {
     ).values()
   )
 
+  // Grouped by COMPANY first, then by barge within that company — same
+  // ordering the Barges report uses — so cross-barge anomaly detection
+  // (a vessel bunkered by two different tracked barges too close
+  // together) and the group-break lines line up correctly.
+  const trackedBargeIds = new Set(trackedBarges.map((b) => b.id))
+  const allTrackedRows = () =>
+    operations
+      .filter((o) => o.operation_type === "STS_BUNKERING" && trackedBargeIds.has(o.barge_id))
+      .slice()
+      .sort((a, b) => {
+        if (a.competitor_name !== b.competitor_name) return a.competitor_name < b.competitor_name ? -1 : 1
+        if (a.barge_name !== b.barge_name) return a.barge_name < b.barge_name ? -1 : 1
+        if (a.barge_id !== b.barge_id) return a.barge_id < b.barge_id ? -1 : 1
+        const aKey = `${a.operation_date} ${a.start_time ?? ""}`
+        const bKey = `${b.operation_date} ${b.start_time ?? ""}`
+        return aKey < bKey ? -1 : aKey > bKey ? 1 : 0
+      })
+
   const downloadAllExcel = () => {
-    const rows = operations.filter((o) => o.operation_type === "STS_BUNKERING" && trackedBarges.some((b) => b.id === o.barge_id))
     exportToXlsx(
       "bunkerwatch_track_fko_all.xlsx",
       "Track -FKO",
-      rows.map((o) => ({
+      allTrackedRows().map((o) => ({
         Company: o.competitor_name,
         Barge: o.barge_name,
         "Barge IMO": o.barge_imo,
@@ -107,23 +164,70 @@ export default function TrackFKO() {
         Date: o.operation_date,
         Time: o.start_time ?? "",
         Location: o.location ?? "",
+        Note: isOwnBarge(o) ? "OWN BARGE" : "",
       }))
     )
   }
 
   const downloadAllPdf = () => {
-    const rows = operations
-      .filter((o) => o.operation_type === "STS_BUNKERING" && trackedBarges.some((b) => b.id === o.barge_id))
-      .slice()
-      .sort((a, b) => {
-        if (a.barge_name !== b.barge_name) return a.barge_name < b.barge_name ? -1 : 1
-        return `${a.operation_date} ${a.start_time ?? ""}`.localeCompare(`${b.operation_date} ${b.start_time ?? ""}`)
-      })
+    const rows = allTrackedRows()
+    const byCompetitor = buildPdfSummary(rows, (o) => o.competitor_name, vesselIdentityKey)
+    const byLocation = buildPdfSummary(rows, (o) => o.location || "Unknown", vesselIdentityKey)
+    const byCompetitorLocation = buildPdfCompetitorLocationBreakdown(
+      rows,
+      (o) => o.competitor_name,
+      (o) => o.location || "Unknown",
+      vesselIdentityKey
+    )
+    const dateRangeLabel = buildDateRangeLabel(rows.map((o) => o.operation_date), formatDateDisplay)
+    // A separator line under the last row of each barge's block — same
+    // as the Barges report — so one barge's operations are visually set
+    // off from the next.
+    const groupBreakAfterRows = rows
+      .map((o, i) => (i < rows.length - 1 && o.barge_id !== rows[i + 1].barge_id ? i : -1))
+      .filter((i) => i >= 0)
+    // Flags operations less than 5 hours apart on either a shared tracked
+    // barge (different vessel) or a shared vessel (different tracked
+    // barge) — checked across every barge in this Track -FKO watchlist at
+    // once, so this catches "same vessel, different barge" pairs that the
+    // single-vessel report above can't see on its own.
+    const flaggedRows = Array.from(findOperationAnomalies(rows))
+    const anomalyExplanations = findOperationAnomalyDetails(rows).map((d) => ({
+      rowNumbers: [d.indices[0] + 1, d.indices[1] + 1] as [number, number],
+      gapLabel: d.gapLabel,
+      summary: d.summary,
+    }))
+
     exportToPdf(
       "bunkerwatch_track_fko_all.pdf",
-      "BUNKERWATCH — TRACK -FKO",
-      ["#", "Company", "Vessel", "Barge IMO", "Vessel Served", "Date", "Time", "Location"],
-      rows.map((o, i) => [i + 1, o.competitor_name, o.barge_name, o.barge_imo, o.receiving_vessel_name, formatDateDisplay(o.operation_date), o.start_time ?? "", o.location ?? ""])
+      "BUNKERWATCH — TRACK -FKO — TRACKED BUNKERING OPS",
+      ["#", "Company", "Barge", "Barge IMO", "Vessel", "Date", "Time", "Location", "Note"],
+      rows.map((o, i) => [
+        i + 1,
+        o.competitor_name,
+        o.barge_name,
+        o.barge_imo,
+        o.receiving_vessel_name,
+        formatDateDisplay(o.operation_date),
+        o.start_time ?? "",
+        o.location ?? "",
+        isOwnBarge(o) ? "OWN BARGE" : "",
+      ]),
+      {
+        dateRangeLabel,
+        groupBreakAfterRows,
+        flaggedRows,
+        firstColumnIsRowNumber: true,
+        noteColumnIndex: 8,
+        anomalyExplanations,
+        summary: {
+          byCompetitor: byCompetitor.rows,
+          byLocation: byLocation.rows,
+          byCompetitorLocation,
+          totalOperations: byCompetitor.totalOperations,
+          totalVessels: byCompetitor.totalVessels,
+        },
+      }
     )
   }
 
