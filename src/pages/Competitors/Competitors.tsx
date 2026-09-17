@@ -1,7 +1,7 @@
-import { useState } from "react"
+import { Fragment, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useParams, useNavigate } from "react-router-dom"
-import { Plus, X } from "lucide-react"
+import { Plus, X, ChevronDown, ChevronRight, Sailboat } from "lucide-react"
 import { getDataProvider } from "@/services/data"
 import PageHeader from "@/components/ui/PageHeader"
 import { formatDateDisplay } from "@/lib/dates"
@@ -15,9 +15,19 @@ export default function Competitors() {
   const navigate = useNavigate()
   const [showForm, setShowForm] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(routeId ?? null)
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [name, setName] = useState("")
   const [code, setCode] = useState("")
   const [description, setDescription] = useState("")
+
+  const toggleExpanded = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   const { data: competitors = [] } = useQuery({ queryKey: ["competitors"], queryFn: () => provider.getCompetitors() })
   const { data: barges = [] } = useQuery({ queryKey: ["barges"], queryFn: () => provider.getBarges() })
@@ -88,6 +98,7 @@ export default function Competitors() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-ink-700 text-left text-xs font-medium text-paper-500">
+                  <th className="px-2 py-2.5 w-6"></th>
                   <th className="px-4 py-2.5">Competitor</th>
                   <th className="px-4 py-2.5">Code</th>
                   <th className="px-4 py-2.5 text-right">Barges</th>
@@ -100,52 +111,90 @@ export default function Competitors() {
               <tbody>
                 {competitors.map((c) => {
                   const s = stats(c.id)
+                  const isExpanded = expandedIds.has(c.id)
+                  const compBarges = barges.filter((b) => b.competitor_id === c.id)
                   return (
-                    <tr
-                      key={c.id}
-                      onClick={() => {
-                        setSelectedId(c.id)
-                        navigate(`/competitors/${c.id}`, { replace: true })
-                      }}
-                      className={`border-b border-ink-800 cursor-pointer hover:bg-ink-800/60 ${
-                        selectedId === c.id ? "bg-ink-800" : ""
-                      }`}
-                    >
-                      <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-2.5">
-                          <span
-                            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
-                            style={{ backgroundColor: colorForCompetitor(c.id) }}
+                    <Fragment key={c.id}>
+                      <tr
+                        onClick={() => {
+                          setSelectedId(c.id)
+                          navigate(`/competitors/${c.id}`, { replace: true })
+                        }}
+                        className={`border-b border-ink-800 cursor-pointer hover:bg-ink-800/60 ${
+                          selectedId === c.id ? "bg-ink-800" : ""
+                        }`}
+                      >
+                        <td className="px-2 py-2.5">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleExpanded(c.id)
+                            }}
+                            className="text-paper-500 hover:text-paper-300 focus-ring"
+                            title={isExpanded ? "Hide barges" : "Show barges"}
                           >
-                            {c.code.slice(0, 2)}
-                          </span>
-                          {c.name}
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5 font-mono text-paper-500">{c.code}</td>
-                      <td className="px-4 py-2.5 text-right font-mono">{s.activeBarges}</td>
-                      <td className="px-4 py-2.5 text-right font-mono">{s.operations}</td>
-                      <td className="px-4 py-2.5 text-right font-mono">{s.uniqueVessels}</td>
-                      <td className="px-4 py-2.5 text-paper-500 text-xs">
-                        {s.latest ? formatDateDisplay(s.latest) : "N/A"}
-                      </td>
-                      <td className="px-4 py-2.5 text-right">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            remove(c.id)
-                          }}
-                          className="text-paper-500 hover:text-signal-crit focus-ring"
-                        >
-                          <X size={14} />
-                        </button>
-                      </td>
-                    </tr>
+                            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                          </button>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center gap-2.5">
+                            <span
+                              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
+                              style={{ backgroundColor: colorForCompetitor(c.id) }}
+                            >
+                              {c.code.slice(0, 2)}
+                            </span>
+                            {c.name}
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5 font-mono text-paper-500">{c.code}</td>
+                        <td className="px-4 py-2.5 text-right font-mono">{s.activeBarges}</td>
+                        <td className="px-4 py-2.5 text-right font-mono">{s.operations}</td>
+                        <td className="px-4 py-2.5 text-right font-mono">{s.uniqueVessels}</td>
+                        <td className="px-4 py-2.5 text-paper-500 text-xs">
+                          {s.latest ? formatDateDisplay(s.latest) : "N/A"}
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              remove(c.id)
+                            }}
+                            className="text-paper-500 hover:text-signal-crit focus-ring"
+                          >
+                            <X size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr className="border-b border-ink-800 bg-ink-900/40">
+                          <td></td>
+                          <td colSpan={7} className="px-4 py-3">
+                            {compBarges.length === 0 ? (
+                              <div className="text-xs text-paper-500">No barges added for {c.name} yet.</div>
+                            ) : (
+                              <div className="flex flex-wrap gap-2">
+                                {compBarges.map((b) => (
+                                  <div
+                                    key={b.id}
+                                    className="flex items-center gap-1.5 rounded-full border border-ink-600 bg-ink-950 px-2.5 py-1 text-xs"
+                                  >
+                                    <Sailboat size={11} style={{ color: colorForCompetitor(c.id) }} />
+                                    <span className="font-medium">{b.name}</span>
+                                    <span className="font-mono text-paper-500">{b.imo}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   )
                 })}
                 {competitors.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-paper-500 text-sm">
+                    <td colSpan={8} className="px-4 py-8 text-center text-paper-500 text-sm">
                       No competitors tracked yet.
                     </td>
                   </tr>
