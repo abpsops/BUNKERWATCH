@@ -1,6 +1,6 @@
 import { Fragment, useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { FileSpreadsheet, FileText, CheckCircle2, AlertTriangle, Plus } from "lucide-react"
+import { FileSpreadsheet, FileText, CheckCircle2, AlertTriangle, Plus, RotateCcw, X } from "lucide-react"
 import { getDataProvider } from "@/services/data"
 import PageHeader from "@/components/ui/PageHeader"
 import BargeSTSUploadModal from "@/components/BargeSTSUploadModal"
@@ -65,6 +65,17 @@ export default function TrackFKO() {
 
   const onAttachFile = (bargeId: string, file: File) => {
     setPendingFiles((prev) => ({ ...prev, [bargeId]: file }))
+  }
+
+  // Cancels a file that was attached via "Upload" but not analysed yet —
+  // just removes the staged file, without touching any already-analysed
+  // data for that barge.
+  const removePendingFile = (bargeId: string) => {
+    setPendingFiles((prev) => {
+      const next = { ...prev }
+      delete next[bargeId]
+      return next
+    })
   }
 
   const addVessel = async (name: string) => {
@@ -151,6 +162,46 @@ export default function TrackFKO() {
         const bKey = `${b.operation_date} ${b.start_time ?? ""}`
         return aKey < bKey ? -1 : aKey > bKey ? 1 : 0
       })
+
+  // Resets a single tracked barge's analyser back to zero: deletes every
+  // imported STS operation tied to it and clears any file staged but not
+  // yet analysed. The barge record itself (name, IMO, company) is
+  // untouched — same behaviour as "Reset" on the Barges page.
+  const clearBarge = async (b: Barge) => {
+    const s = bargeStats(b.id)
+    const hasPending = !!pendingFiles[b.id]
+    if (s.ops === 0 && !hasPending) return
+    const confirmed = window.confirm(
+      `Clear all analysed data for "${b.name}"? This deletes ${s.ops} bunkering event${s.ops === 1 ? "" : "s"} imported for this barge and cannot be undone.`
+    )
+    if (!confirmed) return
+    await provider.deleteOperationsByBarge(b.id)
+    removePendingFile(b.id)
+    qc.invalidateQueries({ queryKey: ["operations-all"] })
+    qc.invalidateQueries({ queryKey: ["sts-analysis"] })
+  }
+
+  // Resets EVERY tracked barge's analyser back to zero in one action —
+  // deletes all imported STS operations across every barge on this
+  // watchlist and clears any files staged but not yet analysed. Barges
+  // not on the Track -FKO list are untouched.
+  const clearAllTracked = async () => {
+    const totalOps = operations.filter((o) => o.operation_type === "STS_BUNKERING" && trackedBargeIds.has(o.barge_id)).length
+    const pendingCount = trackedBarges.filter((b) => pendingFiles[b.id]).length
+    if (totalOps === 0 && pendingCount === 0) return
+    const confirmed = window.confirm(
+      `Clear ALL analysed data for every tracked vessel? This deletes ${totalOps} bunkering event${totalOps === 1 ? "" : "s"} across all ${trackedBarges.length} tracked vessel${trackedBarges.length === 1 ? "" : "s"} and cannot be undone.`
+    )
+    if (!confirmed) return
+    await Promise.all(trackedBarges.map((b) => provider.deleteOperationsByBarge(b.id)))
+    setPendingFiles((prev) => {
+      const next = { ...prev }
+      trackedBarges.forEach((b) => delete next[b.id])
+      return next
+    })
+    qc.invalidateQueries({ queryKey: ["operations-all"] })
+    qc.invalidateQueries({ queryKey: ["sts-analysis"] })
+  }
 
   const downloadAllExcel = () => {
     exportToXlsx(
@@ -251,6 +302,13 @@ export default function TrackFKO() {
               className="flex items-center gap-1.5 rounded-md bg-vivid-blue px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:brightness-110 transition-all focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <FileText size={13} /> Download All (PDF)
+            </button>
+            <button
+              onClick={clearAllTracked}
+              title="Reset every tracked vessel's analysed data back to 0"
+              className="flex items-center gap-1.5 rounded-md border border-vivid-red/40 text-vivid-red px-3 py-1.5 text-xs hover:bg-vivid-red-tint transition-colors focus-ring"
+            >
+              <RotateCcw size={13} /> Clear All
             </button>
           </div>
         }
@@ -368,10 +426,25 @@ export default function TrackFKO() {
                                 Analyse
                               </button>
                               {pendingFile && (
-                                <span className="flex items-center gap-1 text-[11px] text-signal-ok max-w-[120px] truncate" title={pendingFile.name}>
+                                <span className="flex items-center gap-1 text-[11px] text-signal-ok max-w-[110px] truncate" title={pendingFile.name}>
                                   <CheckCircle2 size={12} className="shrink-0" /> {pendingFile.name}
+                                  <button
+                                    onClick={() => removePendingFile(b.id)}
+                                    title="Remove this file"
+                                    className="text-paper-500 hover:text-signal-crit focus-ring shrink-0"
+                                  >
+                                    <X size={11} />
+                                  </button>
                                 </span>
                               )}
+                              <button
+                                onClick={() => clearBarge(b)}
+                                disabled={s.ops === 0 && !pendingFile}
+                                title="Reset this vessel's analysed data back to 0"
+                                className="ml-auto flex items-center gap-1 rounded-md border border-ink-600 px-2 py-1 text-xs text-paper-500 hover:border-signal-crit/40 hover:text-signal-crit focus-ring disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-ink-600 disabled:hover:text-paper-500"
+                              >
+                                <RotateCcw size={11} />
+                              </button>
                             </div>
                           </td>
                           <td className="px-4 py-2.5">
