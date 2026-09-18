@@ -49,6 +49,28 @@ function nearestNamedLocation(lat: number, lon: number): string {
   return bestDist <= MAX_MATCH_METERS ? best : "Unknown"
 }
 
+// The GPS fix on the exact ping that logs an STS Bunkering event is
+// sometimes garbled (a jump to somewhere like 0°N 0°E) — that's a data
+// glitch on that one reading, not the barge teleporting there, and it's
+// exactly the kind of AIS anomaly this app already watches for. Rather
+// than reporting "Unknown" for the whole operation, fall back to the
+// closest-in-time OTHER reading in the same track that DOES resolve to a
+// known port. A barge isn't fixed to one home port — it can genuinely be
+// at Fujairah, Khor Fakkan, or any of the Oman ports on a given trip — so
+// this always follows whatever the surrounding pings actually show.
+function nearestValidLocation(rows: ShipTrackRow[], targetIndex: number): string {
+  const target = rows[targetIndex]
+  let best: { location: string; deltaMs: number } | null = null
+  for (let i = 0; i < rows.length; i++) {
+    if (i === targetIndex) continue
+    const location = nearestNamedLocation(rows[i].latitude, rows[i].longitude)
+    if (location === "Unknown") continue
+    const deltaMs = Math.abs(rows[i].timestamp.getTime() - target.timestamp.getTime())
+    if (!best || deltaMs < best.deltaMs) best = { location, deltaMs }
+  }
+  return best ? best.location : "Unknown"
+}
+
 /** Reads the sheet as a raw grid and finds the real header row, since row 1 is a report banner, not data. */
 export async function parseShipTrackFile(file: File): Promise<{ isShipTrackFormat: boolean; rows: ShipTrackRow[] }> {
   const buf = await file.arrayBuffer()
@@ -110,23 +132,25 @@ const BUNKERING_PATTERN = /STS Operation Bunkering with (.+)/i
 /** Pulls out only STS Bunkering narratives — explicitly excludes "STS Operation Supply" and everything else. */
 export function extractBunkeringEvents(rows: ShipTrackRow[]): BunkeringExtraction[] {
   const results: BunkeringExtraction[] = []
-  for (const row of rows) {
+  rows.forEach((row, i) => {
     const match = row.narrative.match(BUNKERING_PATTERN)
-    if (!match) continue
+    if (!match) return
     // The narrative's vessel name is followed by a literal "\n" text
     // sequence (two characters: backslash, then n) before the date line —
     // not an actual line-break character — confirmed against a real
     // ShipTrackExport file.
     const vesselName = match[1].split("\\n")[0].trim()
-    if (!vesselName) continue
+    if (!vesselName) return
+    let location = nearestNamedLocation(row.latitude, row.longitude)
+    if (location === "Unknown") location = nearestValidLocation(rows, i)
     results.push({
       vesselName,
       timestamp: row.timestamp,
-      location: nearestNamedLocation(row.latitude, row.longitude),
+      location,
       latitude: row.latitude,
       longitude: row.longitude,
     })
-  }
+  })
   return results
 }
 

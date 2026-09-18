@@ -46,9 +46,26 @@ export default function TrackFKO() {
 
   const competitorName = (id: string) => competitors.find((c) => c.id === id)?.name ?? "—"
 
-  // Match watchlist names against tracked barges, case/whitespace-insensitive.
-  const bargeByName = new Map(barges.map((b) => [b.name.trim().toUpperCase(), b]))
-  const findBarge = (name: string) => bargeByName.get(name.trim().toUpperCase())
+  // Match watchlist names against tracked barges. Case/whitespace
+  // differences are normalized, and — because real fleet data has at
+  // least one vessel logged with a typo'd Roman numeral ("Vista Lll"
+  // instead of "Vista III") — a trailing run of 2+ I/L characters is
+  // also normalized to all "I"s before comparing, so that kind of typo
+  // still matches. Returns every barge that matches, not just one: two
+  // different companies can genuinely have a barge of the same name (the
+  // real fleet data has two "Casper" barges, one under Pearl Marine/PC
+  // and one under 1Energin), and both should show up as their own row.
+  const normalizeForMatch = (name: string) =>
+    name.trim().toUpperCase().replace(/\s+/g, " ").replace(/([IL]{2,})$/, (m) => "I".repeat(m.length))
+
+  const bargesByName = new Map<string, Barge[]>()
+  barges.forEach((b) => {
+    const key = normalizeForMatch(b.name)
+    const list = bargesByName.get(key) ?? []
+    list.push(b)
+    bargesByName.set(key, list)
+  })
+  const findBarges = (name: string): Barge[] => bargesByName.get(normalizeForMatch(name)) ?? []
 
   const bargeStats = (bargeId: string) => {
     const ops = operations.filter((o) => o.barge_id === bargeId && o.operation_type === "STS_BUNKERING")
@@ -111,7 +128,7 @@ export default function TrackFKO() {
     exportToPdf(
       `bunkerwatch_track_fko_${b.name.replace(/\s+/g, "_").toLowerCase()}.pdf`,
       `BUNKERWATCH — TRACK -FKO — ${b.name}`,
-      ["#", "Company", "Barge", "Barge IMO", "Vessel", "Date", "Time", "Location", "Note"],
+      ["#", "Competitor", "Barge", "Barge IMO", "Vessel", "Date", "Time", "Location", "Note"],
       rows.map((o, i) => [
         i + 1,
         competitorName(b.competitor_id),
@@ -134,14 +151,13 @@ export default function TrackFKO() {
   }
 
   // Every distinct tracked (i.e. already-added) barge across all three
-  // groups, deduplicated — a vessel deployed to more than one port is
-  // still just one underlying barge with one shared set of uploaded data.
+  // groups, deduplicated by barge id — a vessel deployed to more than one
+  // port is still just one underlying barge with one shared set of
+  // uploaded data, but two genuinely different barges sharing a name (see
+  // above) both stay in this list as separate entries.
   const trackedBarges = Array.from(
     new Map(
-      TRACK_FKO_GROUPS.flatMap((g) => g.entries)
-        .map((e) => findBarge(e.name))
-        .filter((b): b is Barge => !!b)
-        .map((b) => [b.id, b])
+      TRACK_FKO_GROUPS.flatMap((g) => g.entries.flatMap((e) => findBarges(e.name))).map((b) => [b.id, b] as const)
     ).values()
   )
 
@@ -208,7 +224,7 @@ export default function TrackFKO() {
       "bunkerwatch_track_fko_all.xlsx",
       "Track -FKO",
       allTrackedRows().map((o) => ({
-        Company: o.competitor_name,
+        Competitor: o.competitor_name,
         Barge: o.barge_name,
         "Barge IMO": o.barge_imo,
         Vessel: o.receiving_vessel_name,
@@ -252,7 +268,7 @@ export default function TrackFKO() {
     exportToPdf(
       "bunkerwatch_track_fko_all.pdf",
       "BUNKERWATCH — TRACK -FKO — TRACKED BUNKERING OPS",
-      ["#", "Company", "Barge", "Barge IMO", "Vessel", "Date", "Time", "Location", "Note"],
+      ["#", "Competitor", "Barge", "Barge IMO", "Vessel", "Date", "Time", "Location", "Note"],
       rows.map((o, i) => [
         i + 1,
         o.competitor_name,
@@ -331,7 +347,7 @@ export default function TrackFKO() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-ink-700 text-left text-xs font-medium text-paper-500">
-                    <th className="px-4 py-2.5">Company</th>
+                    <th className="px-4 py-2.5">Competitor</th>
                     <th className="px-4 py-2.5">Vessel</th>
                     <th className="px-4 py-2.5">IMO</th>
                     {group.port === "OMAN" && <th className="px-4 py-2.5">Destination</th>}
@@ -342,9 +358,9 @@ export default function TrackFKO() {
                   </tr>
                 </thead>
                 <tbody>
-                  {group.entries.map((entry) => {
-                    const b = findBarge(entry.name)
-                    if (!b) {
+                  {group.entries.flatMap((entry) => {
+                    const matches = findBarges(entry.name)
+                    if (matches.length === 0) {
                       // Not yet tracked — inline form to pick the company and
                       // enter the IMO (the source report has neither), which
                       // creates it as a real tracked barge on submit.
@@ -359,7 +375,7 @@ export default function TrackFKO() {
                               onChange={(e) => setAddCompetitorId((prev) => ({ ...prev, [entry.name]: e.target.value }))}
                               className="bg-ink-800 border border-ink-600 rounded-md px-2 py-1 text-xs min-w-[140px]"
                             >
-                              <option value="">Select company…</option>
+                              <option value="">Select competitor…</option>
                               {competitors.map((c) => (
                                 <option key={c.id} value={c.id}>{c.name}</option>
                               ))}
@@ -392,74 +408,76 @@ export default function TrackFKO() {
                       )
                     }
 
-                    const s = bargeStats(b.id)
-                    const pendingFile = pendingFiles[b.id]
-                    return (
-                      <Fragment key={b.id}>
-                        <tr className="border-b border-ink-800 hover:bg-ink-800/60 transition-colors">
-                          <td className="px-4 py-2.5 text-paper-300">{competitorName(b.competitor_id)}</td>
-                          <td className="px-4 py-2.5">{b.name}</td>
-                          <td className="px-4 py-2.5 font-mono text-paper-500">{b.imo}</td>
-                          {group.port === "OMAN" && <td className="px-4 py-2.5 text-xs text-paper-500">{entry.destination}</td>}
-                          <td className="px-4 py-2.5 text-right font-mono">{s.ops}</td>
-                          <td className="px-4 py-2.5 text-xs text-paper-500">{s.latest ? formatDateDisplay(s.latest) : "N/A"}</td>
-                          <td className="px-4 py-2.5">
-                            <div className="flex items-center gap-2">
-                              <input
-                                ref={(el) => { fileInputRefs.current[b.id] = el }}
-                                type="file"
-                                accept=".csv,.xlsx,.xls"
-                                className="hidden"
-                                onChange={(e) => e.target.files?.[0] && onAttachFile(b.id, e.target.files[0])}
-                              />
+                    return matches.map((b) => {
+                      const s = bargeStats(b.id)
+                      const pendingFile = pendingFiles[b.id]
+                      return (
+                        <Fragment key={b.id}>
+                          <tr className="border-b border-ink-800 hover:bg-ink-800/60 transition-colors">
+                            <td className="px-4 py-2.5 text-paper-300">{competitorName(b.competitor_id)}</td>
+                            <td className="px-4 py-2.5">{b.name}</td>
+                            <td className="px-4 py-2.5 font-mono text-paper-500">{b.imo}</td>
+                            {group.port === "OMAN" && <td className="px-4 py-2.5 text-xs text-paper-500">{entry.destination}</td>}
+                            <td className="px-4 py-2.5 text-right font-mono">{s.ops}</td>
+                            <td className="px-4 py-2.5 text-xs text-paper-500">{s.latest ? formatDateDisplay(s.latest) : "N/A"}</td>
+                            <td className="px-4 py-2.5">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  ref={(el) => { fileInputRefs.current[b.id] = el }}
+                                  type="file"
+                                  accept=".csv,.xlsx,.xls"
+                                  className="hidden"
+                                  onChange={(e) => e.target.files?.[0] && onAttachFile(b.id, e.target.files[0])}
+                                />
+                                <button
+                                  onClick={() => fileInputRefs.current[b.id]?.click()}
+                                  className="rounded-md border border-vivid-cyan/50 text-vivid-cyan px-2.5 py-1 text-xs font-medium hover:bg-vivid-cyan-tint transition-colors focus-ring"
+                                >
+                                  Upload
+                                </button>
+                                <button
+                                  onClick={() => pendingFile && setAnalysingBarge(b)}
+                                  disabled={!pendingFile}
+                                  className="rounded-md bg-vivid-teal text-white shadow-sm hover:brightness-110 transition-all px-2.5 py-1 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                  Analyse
+                                </button>
+                                {pendingFile && (
+                                  <span className="flex items-center gap-1 text-[11px] text-signal-ok max-w-[110px] truncate" title={pendingFile.name}>
+                                    <CheckCircle2 size={12} className="shrink-0" /> {pendingFile.name}
+                                    <button
+                                      onClick={() => removePendingFile(b.id)}
+                                      title="Remove this file"
+                                      className="text-paper-500 hover:text-signal-crit focus-ring shrink-0"
+                                    >
+                                      <X size={11} />
+                                    </button>
+                                  </span>
+                                )}
+                                <button
+                                  onClick={() => clearBarge(b)}
+                                  disabled={s.ops === 0 && !pendingFile}
+                                  title="Reset this vessel's analysed data back to 0"
+                                  className="ml-auto flex items-center gap-1 rounded-md border border-ink-600 px-2 py-1 text-xs text-paper-500 hover:border-signal-crit/40 hover:text-signal-crit focus-ring disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-ink-600 disabled:hover:text-paper-500"
+                                >
+                                  <RotateCcw size={11} />
+                                </button>
+                              </div>
+                            </td>
+                            <td className="px-4 py-2.5">
                               <button
-                                onClick={() => fileInputRefs.current[b.id]?.click()}
-                                className="rounded-md border border-vivid-cyan/50 text-vivid-cyan px-2.5 py-1 text-xs font-medium hover:bg-vivid-cyan-tint transition-colors focus-ring"
+                                onClick={() => downloadVesselPdf(b)}
+                                disabled={s.ops === 0}
+                                title={s.ops === 0 ? "Analyse a file first" : `Report ${b.name} to PDF`}
+                                className="flex items-center gap-1.5 rounded-md bg-vivid-blue text-white shadow-sm hover:brightness-110 transition-all px-2.5 py-1 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
                               >
-                                Upload
+                                <FileText size={12} /> Report (PDF)
                               </button>
-                              <button
-                                onClick={() => pendingFile && setAnalysingBarge(b)}
-                                disabled={!pendingFile}
-                                className="rounded-md bg-vivid-teal text-white shadow-sm hover:brightness-110 transition-all px-2.5 py-1 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
-                              >
-                                Analyse
-                              </button>
-                              {pendingFile && (
-                                <span className="flex items-center gap-1 text-[11px] text-signal-ok max-w-[110px] truncate" title={pendingFile.name}>
-                                  <CheckCircle2 size={12} className="shrink-0" /> {pendingFile.name}
-                                  <button
-                                    onClick={() => removePendingFile(b.id)}
-                                    title="Remove this file"
-                                    className="text-paper-500 hover:text-signal-crit focus-ring shrink-0"
-                                  >
-                                    <X size={11} />
-                                  </button>
-                                </span>
-                              )}
-                              <button
-                                onClick={() => clearBarge(b)}
-                                disabled={s.ops === 0 && !pendingFile}
-                                title="Reset this vessel's analysed data back to 0"
-                                className="ml-auto flex items-center gap-1 rounded-md border border-ink-600 px-2 py-1 text-xs text-paper-500 hover:border-signal-crit/40 hover:text-signal-crit focus-ring disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-ink-600 disabled:hover:text-paper-500"
-                              >
-                                <RotateCcw size={11} />
-                              </button>
-                            </div>
-                          </td>
-                          <td className="px-4 py-2.5">
-                            <button
-                              onClick={() => downloadVesselPdf(b)}
-                              disabled={s.ops === 0}
-                              title={s.ops === 0 ? "Analyse a file first" : `Report ${b.name} to PDF`}
-                              className="flex items-center gap-1.5 rounded-md bg-vivid-blue text-white shadow-sm hover:brightness-110 transition-all px-2.5 py-1 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
-                            >
-                              <FileText size={12} /> Report (PDF)
-                            </button>
-                          </td>
-                        </tr>
-                      </Fragment>
-                    )
+                            </td>
+                          </tr>
+                        </Fragment>
+                      )
+                    })
                   })}
                 </tbody>
               </table>
@@ -470,7 +488,7 @@ export default function TrackFKO() {
         {competitors.length === 0 && (
           <div className="flex items-center gap-2 rounded-lg border border-signal-warn/40 bg-signal-warn/10 px-4 py-3 text-xs text-signal-warn">
             <AlertTriangle size={14} className="shrink-0" />
-            Add at least one company under Competitors before you can add these vessels to the tracker.
+            Add at least one competitor under Competitors before you can add these vessels to the tracker.
           </div>
         )}
       </div>

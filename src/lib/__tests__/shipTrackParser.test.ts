@@ -81,6 +81,46 @@ describe("extractBunkeringEvents", () => {
     expect(results[0].location).toBe("Unknown")
   })
 
+  it("falls back to the closest-in-time reading when the Bunkering ping's own GPS fix is garbled — a barge can genuinely be at Fujairah, Khor Fakkan, or Oman, so it isn't assumed to be at any fixed 'home' port", () => {
+    // Matches a real ShipTrackExport for CASPER: the vessel's berth/port
+    // calls around the event are all clearly Fujairah, but the exact STS
+    // Bunkering ping itself has a glitched GPS fix near 0°N 0°E.
+    const rows: ShipTrackRow[] = [
+      row({
+        name: "CASPER",
+        narrative: "Berth call\\nOT1-B1, Fujairah\\n15 Sep 2026 03:58",
+        timestamp: new Date("2026-09-15T15:58:43Z"),
+        latitude: 25.186555,
+        longitude: 56.359658,
+      }),
+      row({
+        name: "CASPER",
+        narrative: "Berth call\\nBerth No 2, Fujairah\\n16 Sep 2026 06:08",
+        timestamp: new Date("2026-09-16T06:08:06Z"),
+        latitude: 25.203778,
+        longitude: 56.369465,
+      }),
+      row({
+        name: "CASPER",
+        narrative: "STS Operation Bunkering with RUBY STAR\\n16 Sep 2026 05:39",
+        timestamp: new Date("2026-09-16T17:39:56Z"),
+        latitude: 0.016195,
+        longitude: 0.307175,
+      }),
+      row({
+        name: "CASPER",
+        narrative: "Port call\\nFujairah\\n16 Sep 2026 07:50 8 hours",
+        timestamp: new Date("2026-09-16T19:50:16Z"),
+        latitude: 25.203713,
+        longitude: 56.369413,
+      }),
+    ]
+    const results = extractBunkeringEvents(rows)
+    expect(results.length).toBe(1)
+    expect(results[0].vesselName).toBe("RUBY STAR")
+    expect(results[0].location).toBe("Fujairah")
+  })
+
   it("processes a realistic mixed batch matching the real export shape", () => {
     const rows: ShipTrackRow[] = [
       row({ name: "ANDES", narrative: "STS Operation Bunkering with ANDES\\n19 Aug 2026 09:30" }),
