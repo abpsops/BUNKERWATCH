@@ -124,6 +124,39 @@ export async function parseShipTrackFile(file: File): Promise<{ isShipTrackForma
   return { isShipTrackFormat: true, rows }
 }
 
+// Fallback when the GPS fix can't be used (missing/garbled lat-lon): read the
+// port out of the row's own text — Narrative and Destination — e.g.
+// "Port call Colombo", "Destination Change To Galle", "LKCMB".
+const TEXT_PORT_HINTS: { name: string; pattern: RegExp }[] = [
+  { name: "Colombo", pattern: /colombo|lkcmb|\bcmb\b/i },
+  { name: "Galle", pattern: /galle|lkgal|\bgal\b/i },
+  { name: "Hambantota", pattern: /hambantota|lkhba|lkham|\bham\b|\bhba\b/i },
+  { name: "Trincomalee", pattern: /trincomalee|trinco|lktrr|lktrc|\btrc\b/i },
+  { name: "Khor Fakkan", pattern: /khor fakkan|aekhl|\bkfk\b/i },
+  { name: "Fujairah", pattern: /fujairah|aefjr|\bfuj\b/i },
+  { name: "Sohar", pattern: /sohar/i },
+  { name: "Salalah", pattern: /salalah/i },
+  { name: "Al Duqm", pattern: /duqm/i },
+]
+
+function locationFromText(row: ShipTrackRow): string {
+  const text = `${row.narrative} ${row.destination}`
+  const hit = TEXT_PORT_HINTS.find((h) => h.pattern.test(text))
+  return hit ? hit.name : "Unknown"
+}
+
+function nearestTextLocation(rows: ShipTrackRow[], targetIndex: number): string {
+  const target = rows[targetIndex].timestamp.getTime()
+  let best: { location: string; deltaMs: number } | null = null
+  for (let i = 0; i < rows.length; i++) {
+    const location = locationFromText(rows[i])
+    if (location === "Unknown") continue
+    const deltaMs = Math.abs(rows[i].timestamp.getTime() - target)
+    if (!best || deltaMs < best.deltaMs) best = { location, deltaMs }
+  }
+  return best ? best.location : "Unknown"
+}
+
 export interface BunkeringExtraction {
   vesselName: string
   timestamp: Date
@@ -148,6 +181,8 @@ export function extractBunkeringEvents(rows: ShipTrackRow[]): BunkeringExtractio
     if (!vesselName) return
     let location = nearestNamedLocation(row.latitude, row.longitude)
     if (location === "Unknown") location = nearestValidLocation(rows, i)
+    if (location === "Unknown") location = locationFromText(row)
+    if (location === "Unknown") location = nearestTextLocation(rows, i)
     results.push({
       vesselName,
       timestamp: row.timestamp,

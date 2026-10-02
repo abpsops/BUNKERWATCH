@@ -83,6 +83,14 @@ describe("extractBunkeringEvents", () => {
     })
   })
 
+  it("reads the port from Narrative/Destination text when lat/lon is unusable", () => {
+    const rows = [
+      row({ narrative: "Port call\\nColombo\\n19 Aug 2026 02:00", latitude: NaN, longitude: NaN }),
+      row({ narrative: "STS Operation Bunkering with TEST\\n19 Aug 2026 04:14", latitude: NaN, longitude: NaN }),
+    ]
+    expect(extractBunkeringEvents(rows)[0].location).toBe("Colombo")
+  })
+
   it("reports Unknown rather than a misleading nearest match for garbled coordinates", () => {
     const rows = [
       row({
