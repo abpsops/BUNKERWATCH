@@ -68,6 +68,21 @@ describe("extractBunkeringEvents", () => {
     expect(results[0].location).toBe("Khor Fakkan")
   })
 
+  it("classifies Sri Lankan positions to Colombo / Galle / Hambantota / Trincomalee", () => {
+    const cases: [number, number, string][] = [
+      [6.96, 79.83, "Colombo"],
+      [6.02, 80.2, "Galle"],
+      [6.11, 81.1, "Hambantota"],
+      [8.55, 81.25, "Trincomalee"],
+    ]
+    cases.forEach(([latitude, longitude, expected]) => {
+      const results = extractBunkeringEvents([
+        row({ name: "SL", narrative: "STS Operation Bunkering with TEST\\n19 Aug 2026 04:14", latitude, longitude }),
+      ])
+      expect(results[0].location).toBe(expected)
+    })
+  })
+
   it("reports Unknown rather than a misleading nearest match for garbled coordinates", () => {
     const rows = [
       row({

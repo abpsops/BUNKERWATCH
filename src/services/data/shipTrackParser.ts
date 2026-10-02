@@ -22,6 +22,11 @@ const NAMED_LOCATIONS: { name: string; lat: number; lon: number }[] = [
   { name: "Sohar", lat: 24.47, lon: 56.61 },
   { name: "Salalah", lat: 17.02, lon: 54.09 },
   { name: "Al Duqm", lat: 19.65, lon: 57.7 },
+  // Sri Lanka (BARGES -SL)
+  { name: "Colombo", lat: 6.95, lon: 79.84 },
+  { name: "Galle", lat: 6.03, lon: 80.22 },
+  { name: "Hambantota", lat: 6.12, lon: 81.11 },
+  { name: "Trincomalee", lat: 8.57, lon: 81.23 },
 ]
 // Beyond this, a nearest-match is meaningless (e.g. a garbled AIS ping near
 // 0,0) — report "Unknown" rather than a misleading location.
