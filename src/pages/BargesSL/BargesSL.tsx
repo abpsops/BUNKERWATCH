@@ -8,6 +8,7 @@ import { isValidIMO, normalizeIMO } from "@/lib/imo"
 import { formatDateDisplay } from "@/lib/dates"
 import { exportToPdf, buildPdfSummary, buildDateRangeLabel, buildPdfCompetitorLocationBreakdown } from "@/lib/exportPdf"
 import { vesselIdentityKey } from "@/lib/anomalies"
+import { nearestNamedLocation } from "@/services/data/shipTrackParser"
 import { BARGES_SL, type BargesSlEntry } from "@/lib/bargesSl"
 import type { Barge } from "@/types"
 
@@ -75,12 +76,33 @@ export default function BargesSL() {
     qc.invalidateQueries({ queryKey: ["sts-analysis"] })
   }
 
+  // Operations analysed before Sri Lankan ports were added were saved with
+  // "Unknown" — re-derive the location from the stored lat/lon at report time
+  // so old data doesn't need re-uploading. A garbled fix falls back to the
+  // closest-in-time operation of the same barge that does resolve.
+  const resolveLocation = (o: (typeof operations)[number]): string => {
+    const known = (loc?: string | null) => !!loc && loc.trim() !== "" && loc.toLowerCase() !== "unknown"
+    if (known(o.location)) return o.location as string
+    const fromCoords = nearestNamedLocation(Number(o.latitude), Number(o.longitude))
+    if (fromCoords !== "Unknown") return fromCoords
+    const t = new Date(`${o.operation_date}T${o.start_time ?? "00:00"}`).getTime()
+    let best: { loc: string; d: number } | null = null
+    for (const other of operations) {
+      if (other.barge_id !== o.barge_id || other.id === o.id) continue
+      const loc = known(other.location) ? (other.location as string) : nearestNamedLocation(Number(other.latitude), Number(other.longitude))
+      if (loc === "Unknown") continue
+      const d = Math.abs(new Date(`${other.operation_date}T${other.start_time ?? "00:00"}`).getTime() - t)
+      if (!best || d < best.d) best = { loc, d }
+    }
+    return best ? best.loc : "Unknown"
+  }
+
   const header = ["#", "Competitor", "Barge", "Barge IMO", "Vessel", "Date", "Time", "Location"]
 
   const downloadVesselPdf = (b: Barge) => {
     const rows = operations
       .filter((o) => o.barge_id === b.id && o.operation_type === "STS_BUNKERING")
-      .slice()
+      .map((o) => ({ ...o, location: resolveLocation(o) }))
       .sort((a, c) => `${a.operation_date} ${a.start_time ?? ""}`.localeCompare(`${c.operation_date} ${c.start_time ?? ""}`))
     exportToPdf(
       `bunkerwatch_barges_sl_${b.name.replace(/\s+/g, "_").toLowerCase()}.pdf`,
@@ -94,7 +116,7 @@ export default function BargesSL() {
   const downloadAllPdf = () => {
     const rows = operations
       .filter((o) => o.operation_type === "STS_BUNKERING" && trackedIds.has(o.barge_id))
-      .slice()
+      .map((o) => ({ ...o, location: resolveLocation(o) }))
       .sort((a, b) => {
         if (a.competitor_name !== b.competitor_name) return a.competitor_name < b.competitor_name ? -1 : 1
         if (a.barge_name !== b.barge_name) return a.barge_name < b.barge_name ? -1 : 1

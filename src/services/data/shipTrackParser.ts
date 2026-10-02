@@ -41,7 +41,7 @@ function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number)
   return 2 * R * Math.asin(Math.sqrt(a))
 }
 
-function nearestNamedLocation(lat: number, lon: number): string {
+export function nearestNamedLocation(lat: number, lon: number): string {
   let best = NAMED_LOCATIONS[0].name
   let bestDist = Infinity
   for (const loc of NAMED_LOCATIONS) {
