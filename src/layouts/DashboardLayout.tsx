@@ -23,6 +23,7 @@ const NAV_SECTIONS: {
       { to: "/competitors", label: "Competitors", icon: Building2, color: "#22D3EE" },
       { to: "/barges", label: "Barges", icon: Sailboat, color: "#2DD4BF" },
       { to: "/track-fko", label: "Track -FKO", icon: Target, color: "#F472B6" },
+      { to: "/barges-sl", label: "BARGES -SL", icon: Sailboat, color: "#FBBF24" },
       { to: "/vessels", label: "Vessels", icon: Ship, color: "#4ADE80" },
     ],
   },
