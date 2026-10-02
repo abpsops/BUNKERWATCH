@@ -21,4 +21,5 @@ export const BARGES_SL: BargesSlEntry[] = [
   { company: "Moceti International", vessel: "MT Global Dominance", imo: "9672301", coverage: "CMB / OPL" },
   { company: "Lanka IOC", vessel: "MT Yala", imo: "9809526", coverage: "HAM / Sri Lanka" },
   { company: "Lanka IOC", vessel: "Ceylon Star", imo: "9021291", coverage: "Sri Lanka" },
+  { company: "Lanka IOC", vessel: "Sanvi 69", imo: "8530570", coverage: "—" },
 ]
