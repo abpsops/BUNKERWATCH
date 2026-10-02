@@ -82,14 +82,20 @@ export default function BargesSL() {
   // closest-in-time operation of the same barge that does resolve.
   const resolveLocation = (o: (typeof operations)[number]): string => {
     const known = (loc?: string | null) => !!loc && loc.trim() !== "" && loc.toLowerCase() !== "unknown"
+    // Coordinates win over any saved label, so a stale or wrong saved
+    // location (e.g. FUJ / KFK) can never override where the barge actually was.
+    const hasCoords = o.latitude != null && o.longitude != null && !(Number(o.latitude) === 0 && Number(o.longitude) === 0)
+    if (hasCoords) {
+      const fromCoords = nearestNamedLocation(Number(o.latitude), Number(o.longitude))
+      if (fromCoords !== "Unknown") return fromCoords
+    }
     if (known(o.location)) return o.location as string
-    const fromCoords = nearestNamedLocation(Number(o.latitude), Number(o.longitude))
-    if (fromCoords !== "Unknown") return fromCoords
     const t = new Date(`${o.operation_date}T${o.start_time ?? "00:00"}`).getTime()
     let best: { loc: string; d: number } | null = null
     for (const other of operations) {
       if (other.barge_id !== o.barge_id || other.id === o.id) continue
-      const loc = known(other.location) ? (other.location as string) : nearestNamedLocation(Number(other.latitude), Number(other.longitude))
+      const otherCoords = other.latitude != null && other.longitude != null ? nearestNamedLocation(Number(other.latitude), Number(other.longitude)) : "Unknown"
+      const loc = otherCoords !== "Unknown" ? otherCoords : known(other.location) ? (other.location as string) : "Unknown"
       if (loc === "Unknown") continue
       const d = Math.abs(new Date(`${other.operation_date}T${other.start_time ?? "00:00"}`).getTime() - t)
       if (!best || d < best.d) best = { loc, d }
