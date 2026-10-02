@@ -19,6 +19,9 @@ export interface TrackFkoCall {
 export interface TrackFkoGroupEntry {
   name: string
   destination?: string
+  /** Preset company + IMO: the row adds in one click, creating the company if it doesn't exist yet. */
+  company?: string
+  imo?: string
 }
 
 const FUJ_NAMES: string[] = [
@@ -26,6 +29,12 @@ const FUJ_NAMES: string[] = [
   "DAISY", "FALDA", "FRANCIE", "HEREDIA SEA", "ICONIC 1", "MARINE XENA", "MATURITY ONE",
   "MATURITY TWO", "MONJASA SHIPPER", "SAL", "SIENE", "SILVA", "SORRELLE", "VEMAGRACE",
   "VISTA III", "ZUMA",
+]
+
+const FUJ_PRESETS: TrackFkoGroupEntry[] = [
+  { name: "AVATAR", company: "OMTI", imo: "9417646" },
+  { name: "AVIDEEP", company: "SEALEADER", imo: "9322097" },
+  { name: "RIVAL", company: "ABC", imo: "9361469" },
 ]
 
 const KFK_NAMES: string[] = [
@@ -48,7 +57,7 @@ const OMAN_ENTRIES: TrackFkoGroupEntry[] = [
 ]
 
 export const TRACK_FKO_GROUPS: { port: TrackFkoPort; label: string; entries: TrackFkoGroupEntry[] }[] = [
-  { port: "FUJ", label: "FUJ PORT", entries: FUJ_NAMES.map((name) => ({ name })) },
+  { port: "FUJ", label: "FUJ PORT", entries: [...FUJ_NAMES.map((name) => ({ name })), ...FUJ_PRESETS] },
   { port: "KFK", label: "KFK PORT", entries: KFK_NAMES.map((name) => ({ name })) },
   { port: "OMAN", label: "OMAN PORTS", entries: OMAN_ENTRIES },
 ]

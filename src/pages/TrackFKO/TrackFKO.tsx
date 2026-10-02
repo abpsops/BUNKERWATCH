@@ -95,9 +95,19 @@ export default function TrackFKO() {
     })
   }
 
-  const addVessel = async (name: string) => {
-    const competitorId = addCompetitorId[name]
-    const imo = (addImo[name] ?? "").trim()
+  const addVessel = async (name: string, preset?: { company?: string; imo?: string }) => {
+    let competitorId = addCompetitorId[name]
+    const imo = (preset?.imo ?? addImo[name] ?? "").trim()
+    if (preset?.company) {
+      const want = preset.company.trim().toUpperCase()
+      let comp = competitors.find((c) => c.name.trim().toUpperCase() === want)
+      if (!comp) {
+        const code = preset.company.split(/\s+/).map((w) => w[0]).join("").toUpperCase().slice(0, 6)
+        comp = await provider.upsertCompetitor({ name: preset.company, code })
+        qc.invalidateQueries({ queryKey: ["competitors"] })
+      }
+      competitorId = comp.id
+    }
     if (!competitorId || !isValidIMO(imo)) return
     await provider.upsertBarge({ name, imo, competitor_id: competitorId })
     setAddCompetitorId((prev) => { const next = { ...prev }; delete next[name]; return next })
@@ -364,12 +374,15 @@ export default function TrackFKO() {
                       // Not yet tracked — inline form to pick the company and
                       // enter the IMO (the source report has neither), which
                       // creates it as a real tracked barge on submit.
-                      const imoVal = addImo[entry.name] ?? ""
+                      const imoVal = entry.imo ?? addImo[entry.name] ?? ""
                       const imoTouched = imoVal.length > 0
-                      const canAdd = !!addCompetitorId[entry.name] && isValidIMO(imoVal)
+                      const canAdd = (!!entry.company || !!addCompetitorId[entry.name]) && isValidIMO(imoVal)
                       return (
                         <tr key={entry.name} className="border-b border-ink-800">
                           <td className="px-4 py-2.5">
+                            {entry.company ? (
+                              <span className="text-paper-300">{entry.company}</span>
+                            ) : (
                             <select
                               value={addCompetitorId[entry.name] ?? ""}
                               onChange={(e) => setAddCompetitorId((prev) => ({ ...prev, [entry.name]: e.target.value }))}
@@ -380,9 +393,13 @@ export default function TrackFKO() {
                                 <option key={c.id} value={c.id}>{c.name}</option>
                               ))}
                             </select>
+                            )}
                           </td>
                           <td className="px-4 py-2.5 text-paper-300">{entry.name}</td>
                           <td className="px-4 py-2.5">
+                            {entry.imo ? (
+                              <span className="font-mono text-paper-500">{entry.imo}</span>
+                            ) : (
                             <input
                               value={imoVal}
                               onChange={(e) => setAddImo((prev) => ({ ...prev, [entry.name]: e.target.value }))}
@@ -391,13 +408,14 @@ export default function TrackFKO() {
                                 imoTouched && !isValidIMO(imoVal) ? "border-signal-crit/60" : "border-ink-600"
                               }`}
                             />
+                            )}
                           </td>
                           {group.port === "OMAN" && <td className="px-4 py-2.5 text-xs text-paper-500">{entry.destination}</td>}
                           <td className="px-4 py-2.5 text-right text-paper-500 text-xs" colSpan={1}>Not tracked yet</td>
                           <td className="px-4 py-2.5" />
                           <td className="px-4 py-2.5" colSpan={2}>
                             <button
-                              onClick={() => addVessel(entry.name)}
+                              onClick={() => addVessel(entry.name, entry)}
                               disabled={!canAdd}
                               className="flex items-center gap-1.5 rounded-md bg-vivid-purple text-white shadow-sm hover:brightness-110 transition-all px-2.5 py-1 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
                             >
