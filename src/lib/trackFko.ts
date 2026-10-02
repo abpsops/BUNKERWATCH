@@ -35,6 +35,7 @@ const FUJ_PRESETS: TrackFkoGroupEntry[] = [
   { name: "AVATAR", company: "OMTI", imo: "9417646" },
   { name: "AVIDEEP", company: "SEALEADER", imo: "9322097" },
   { name: "RIVAL", company: "ABC", imo: "9361469" },
+  { name: "AM MOON", company: "ABC", imo: "9416317" },
 ]
 
 const KFK_NAMES: string[] = [
