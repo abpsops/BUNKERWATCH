@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom"
 import { useState } from "react"
-import { LayoutDashboard, Radar, Building2, Sailboat, Ship, FileBarChart, Search, MapPin, Target } from "lucide-react"
+import { LayoutDashboard, Radar, Building2, Sailboat, Ship, FileBarChart, Search, MapPin, Target, GitCompareArrows } from "lucide-react"
 import GlobalSearch from "@/components/layout/GlobalSearch"
 import Logo from "@/components/ui/Logo"
 
@@ -29,7 +29,10 @@ const NAV_SECTIONS: {
   },
   {
     label: "Reports",
-    items: [{ to: "/reports", label: "Reports", icon: FileBarChart, color: "#FB923C" }],
+    items: [
+      { to: "/reports", label: "Reports", icon: FileBarChart, color: "#FB923C" },
+      { to: "/reconciliation", label: "Reconciliation", icon: GitCompareArrows, color: "#34D399" },
+    ],
   },
 ]
 

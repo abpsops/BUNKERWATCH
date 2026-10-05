@@ -5,6 +5,7 @@ import Competitors from "@/pages/Competitors/Competitors"
 import Barges from "@/pages/Barges/Barges"
 import TrackFKO from "@/pages/TrackFKO/TrackFKO"
 import BargesSL from "@/pages/BargesSL/BargesSL"
+import Reconciliation from "@/pages/Reconciliation/Reconciliation"
 import Vessels from "@/pages/Vessels/Vessels"
 import STSAnalysis from "@/pages/STSAnalysis/STSAnalysis"
 import VesselLookup from "@/pages/VesselLookup/VesselLookup"
@@ -31,6 +32,7 @@ export default function App() {
             <Route path="/vessel-lookup" element={<VesselLookup />} />
             <Route path="/barge-map" element={<BargeMap />} />
             <Route path="/reports" element={<Reports />} />
+            <Route path="/reconciliation" element={<Reconciliation />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
