@@ -1,11 +1,12 @@
 import { useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { FileText, CheckCircle2, Plus, RotateCcw, X } from "lucide-react"
+import { FileText, FileSpreadsheet, CheckCircle2, Plus, RotateCcw, X } from "lucide-react"
 import { getDataProvider } from "@/services/data"
 import PageHeader from "@/components/ui/PageHeader"
 import BargeSTSUploadModal from "@/components/BargeSTSUploadModal"
 import { isValidIMO, normalizeIMO } from "@/lib/imo"
 import { formatDateDisplay } from "@/lib/dates"
+import { exportToXlsx } from "@/lib/exportXlsx"
 import { exportToPdf, buildPdfSummary, buildDateRangeLabel, buildPdfCompetitorLocationBreakdown } from "@/lib/exportPdf"
 import { vesselIdentityKey } from "@/lib/anomalies"
 import { nearestNamedLocation } from "@/services/data/shipTrackParser"
@@ -119,6 +120,42 @@ export default function BargesSL() {
     )
   }
 
+  const excelRow = (o: (typeof operations)[number], b: Barge | undefined, i: number) => ({
+    "#": i + 1,
+    Competitor: b ? competitorName(b.competitor_id) : o.competitor_name,
+    Barge: b ? b.name : o.barge_name,
+    "Barge IMO": b ? b.imo : o.barge_imo,
+    Vessel: o.receiving_vessel_name,
+    Date: formatDateDisplay(o.operation_date),
+    Time: o.start_time ?? "",
+    Location: o.location ?? "",
+  })
+
+  const downloadVesselExcel = (b: Barge) => {
+    const rows = operations
+      .filter((o) => o.barge_id === b.id && o.operation_type === "STS_BUNKERING")
+      .map((o) => ({ ...o, location: resolveLocation(o) }))
+      .sort((a, c) => `${a.operation_date} ${a.start_time ?? ""}`.localeCompare(`${c.operation_date} ${c.start_time ?? ""}`))
+    exportToXlsx(
+      `bunkerwatch_barges_sl_${b.name.replace(/\s+/g, "_").toLowerCase()}.xlsx`,
+      b.name.slice(0, 31),
+      rows.map((o, i) => excelRow(o, b, i))
+    )
+  }
+
+  const downloadAllExcel = () => {
+    const rows = operations
+      .filter((o) => o.operation_type === "STS_BUNKERING" && trackedIds.has(o.barge_id))
+      .map((o) => ({ ...o, location: resolveLocation(o) }))
+      .sort((a, b) => {
+        if (a.competitor_name !== b.competitor_name) return a.competitor_name < b.competitor_name ? -1 : 1
+        if (a.barge_name !== b.barge_name) return a.barge_name < b.barge_name ? -1 : 1
+        if (a.barge_id !== b.barge_id) return a.barge_id < b.barge_id ? -1 : 1
+        return `${a.operation_date} ${a.start_time ?? ""}`.localeCompare(`${b.operation_date} ${b.start_time ?? ""}`)
+      })
+    exportToXlsx("bunkerwatch_barges_sl_all.xlsx", "BARGES -SL", rows.map((o, i) => excelRow(o, undefined, i)))
+  }
+
   const downloadAllPdf = () => {
     const rows = operations
       .filter((o) => o.operation_type === "STS_BUNKERING" && trackedIds.has(o.barge_id))
@@ -161,6 +198,14 @@ export default function BargesSL() {
         title="BARGES -SL"
         subtitle="Sri Lanka barge watchlist — upload each vessel's export, Analyse to extract Bunkering events, then Report to PDF."
         actions={
+          <div className="flex items-center gap-2">
+          <button
+            onClick={downloadAllExcel}
+            disabled={trackedBarges.length === 0}
+            className="flex items-center gap-1.5 rounded-md bg-vivid-green text-white shadow-sm hover:brightness-110 transition-all px-3 py-1.5 text-xs font-medium focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <FileSpreadsheet size={13} /> Download All (Excel)
+          </button>
           <button
             onClick={downloadAllPdf}
             disabled={trackedBarges.length === 0}
@@ -168,6 +213,7 @@ export default function BargesSL() {
           >
             <FileText size={13} /> Download All (PDF)
           </button>
+          </div>
         }
       />
 
@@ -273,6 +319,7 @@ export default function BargesSL() {
                       </div>
                     </td>
                     <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => downloadVesselPdf(b)}
                         disabled={s.ops === 0}
@@ -281,6 +328,15 @@ export default function BargesSL() {
                       >
                         <FileText size={12} /> Report (PDF)
                       </button>
+                      <button
+                        onClick={() => downloadVesselExcel(b)}
+                        disabled={s.ops === 0}
+                        title={s.ops === 0 ? "Analyse a file first" : `Report ${b.name} to Excel`}
+                        className="flex items-center gap-1.5 rounded-md bg-vivid-green text-white shadow-sm hover:brightness-110 transition-all px-2.5 py-1 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <FileSpreadsheet size={12} /> Report (Excel)
+                      </button>
+                      </div>
                     </td>
                   </tr>
                 )
