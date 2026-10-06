@@ -19,14 +19,14 @@ export default function Login() {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-4 bg-navy-900">
+    <div className="chart-grid relative flex min-h-screen items-center justify-center px-4">
       <div className="relative z-10 w-full max-w-sm">
         <div className="flex items-center gap-2.5 justify-center mb-8">
           <Logo className="h-8 w-8 text-white" />
-          <span className="font-display text-xl font-semibold tracking-tight text-white">BunkerWatch</span>
+          <span className="font-display text-2xl font-semibold text-white">BunkerWatch</span>
         </div>
 
-        <form onSubmit={signIn} className="rounded-xl glass p-6 space-y-4">
+        <form onSubmit={signIn} className="glass rounded-xl p-6 space-y-4">
           <div>
             <label className="block text-xs font-medium text-paper-500 mb-1">
               Email
@@ -36,7 +36,7 @@ export default function Login() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-ink-950 border border-ink-700 rounded-md px-3 py-2 text-sm text-paper-100 focus-ring"
+              className="w-full px-3 py-2 text-sm"
               autoFocus
             />
           </div>
@@ -49,7 +49,7 @@ export default function Login() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-ink-950 border border-ink-700 rounded-md px-3 py-2 text-sm text-paper-100 focus-ring"
+              className="w-full px-3 py-2 text-sm"
             />
           </div>
 
@@ -58,7 +58,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-md bg-gradient-to-r from-vivid-blue to-vivid-purple text-white py-2 text-sm font-medium disabled:opacity-50 shadow-sm hover:brightness-110 transition-all"
+            className="w-full rounded-md bg-brand-500 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600 focus-ring disabled:opacity-50"
           >
             {loading ? "Signing in…" : "Sign in"}
           </button>

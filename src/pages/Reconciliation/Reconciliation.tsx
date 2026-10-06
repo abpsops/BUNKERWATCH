@@ -80,7 +80,7 @@ export default function Reconciliation() {
             <button
               onClick={handleExportExcel}
               disabled={!hasData}
-              className="flex items-center gap-1.5 rounded-md bg-vivid-blue px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:brightness-110 focus-ring disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex items-center gap-1.5 rounded-md border border-ink-600 bg-white text-paper-300 hover:bg-ink-800 px-3 py-1.5 text-xs font-medium transition focus-ring disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Download size={13} /> Excel
             </button>

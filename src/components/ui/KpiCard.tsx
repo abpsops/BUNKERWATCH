@@ -2,7 +2,7 @@ import type { LucideIcon } from "lucide-react"
 
 export type KpiTone = "blue" | "cyan" | "teal" | "green" | "amber" | "orange" | "pink" | "purple" | "red"
 
-const TONE_ICON_BG: Record<KpiTone, string> = {
+const TONE_RULE: Record<KpiTone, string> = {
   blue: "bg-vivid-blue",
   cyan: "bg-vivid-cyan",
   teal: "bg-vivid-teal",
@@ -14,19 +14,7 @@ const TONE_ICON_BG: Record<KpiTone, string> = {
   red: "bg-vivid-red",
 }
 
-const TONE_CARD_TINT: Record<KpiTone, string> = {
-  blue: "bg-vivid-blue-tint",
-  cyan: "bg-vivid-cyan-tint",
-  teal: "bg-vivid-teal-tint",
-  green: "bg-vivid-green-tint",
-  amber: "bg-vivid-amber-tint",
-  orange: "bg-vivid-orange-tint",
-  pink: "bg-vivid-pink-tint",
-  purple: "bg-vivid-purple-tint",
-  red: "bg-vivid-red-tint",
-}
-
-const TONE_TEXT: Record<KpiTone, string> = {
+const TONE_ICON: Record<KpiTone, string> = {
   blue: "text-vivid-blue",
   cyan: "text-vivid-cyan",
   teal: "text-vivid-teal",
@@ -38,6 +26,11 @@ const TONE_TEXT: Record<KpiTone, string> = {
   red: "text-vivid-red",
 }
 
+/**
+ * One headline figure. The tone is carried by a thin left rule and the icon
+ * only — the number itself stays in ink so a row of cards reads as data,
+ * not as a row of coloured buttons.
+ */
 export default function KpiCard({
   label,
   value,
@@ -52,17 +45,13 @@ export default function KpiCard({
   tone?: KpiTone
 }) {
   return (
-    <div className={`relative overflow-hidden rounded-xl border border-ink-700 ${TONE_CARD_TINT[tone]} px-4 py-3.5 shadow-sm`}>
-      <div className={`absolute inset-x-0 top-0 h-1 ${TONE_ICON_BG[tone]}`} />
-      <div className="flex items-center justify-between">
-        <div className="text-xs font-medium text-paper-300">{label}</div>
-        {Icon && (
-          <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${TONE_ICON_BG[tone]} shadow-sm`}>
-            <Icon size={13} className="text-white" strokeWidth={2.25} />
-          </div>
-        )}
+    <div className="glass relative overflow-hidden rounded-xl py-3.5 pl-5 pr-4">
+      <div className={`absolute inset-y-0 left-0 w-1 ${TONE_RULE[tone]}`} />
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-xs font-medium text-paper-500">{label}</div>
+        {Icon && <Icon size={15} className={TONE_ICON[tone]} strokeWidth={2} />}
       </div>
-      <div className={`mt-1.5 font-display text-2xl font-bold ${TONE_TEXT[tone]}`}>{value}</div>
+      <div className="mt-1 font-display text-[28px] font-semibold leading-tight text-paper-100">{value}</div>
       {sublabel && <div className="mt-0.5 text-xs text-paper-500">{sublabel}</div>}
     </div>
   )

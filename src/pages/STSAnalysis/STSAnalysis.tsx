@@ -158,7 +158,7 @@ export default function STSAnalysis() {
           />
           <button
             onClick={runAnalysis}
-            className="ml-auto rounded-md bg-vivid-blue text-white shadow-sm hover:brightness-110 transition-all px-5 py-2 text-sm font-medium focus-ring"
+            className="ml-auto rounded-md bg-brand-500 hover:bg-brand-600 text-white shadow-sm transition-colors px-5 py-2 text-sm font-medium focus-ring"
           >
             Run analysis
           </button>

@@ -4,44 +4,66 @@
 
 html, body, #root { height: 100%; }
 
-body {
-  @apply bg-ink-950 text-paper-100 font-sans antialiased;
-  font-feature-settings: "tnum" 1;
+@layer base {
+  body {
+    @apply bg-ink-950 text-paper-100 font-sans antialiased;
+    font-size: 14px;
+    line-height: 1.5;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* Headings: condensed, tight, no tracking — set like chart-table titles. */
+  h1, h2, h3, .font-display { letter-spacing: -0.01em; }
+
+  /* Form controls share one look everywhere; pages only add layout. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea {
+    @apply rounded-md border border-ink-600 bg-white text-paper-100;
+  }
+  input::placeholder, textarea::placeholder { @apply text-paper-500; opacity: 0.75; }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    @apply border-brand-500;
+    box-shadow: 0 0 0 3px rgba(11, 94, 142, 0.15);
+  }
+
+  /* Ledger tables: tinted header band, hairline rows, tabular figures. */
+  table { font-variant-numeric: tabular-nums; }
+  thead th {
+    @apply bg-ink-900 text-paper-300 font-semibold;
+    letter-spacing: 0;
+  }
+  tbody tr { @apply transition-colors; }
+  tbody tr:hover { @apply bg-ink-900; }
+
+  ::selection { background: rgba(11, 94, 142, 0.2); }
 }
 
-/* A quiet vignette behind the app shell — not a decorative gradient wash,
-   just enough depth to separate the paper-toned canvas from pure flat
-   colour. Fixed so it doesn't scroll with content. */
-.bg-blobs {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-  background:
-    radial-gradient(1200px 600px at 15% -10%, rgba(14, 34, 51, 0.035), transparent 60%),
-    radial-gradient(900px 500px at 100% 100%, rgba(13, 148, 136, 0.03), transparent 60%);
-}
-
-/* Content surface: warm paper card with a crisp hairline border. Replaces
-   the earlier frosted-glass/blur treatment — flatter, higher-contrast,
-   and reads as an instrument panel rather than a translucent overlay. */
+/* Content surface: flat white panel on the fog canvas with a hairline edge. */
 .glass {
   background: #FFFFFF;
-  border: 1px solid #E4E1D8;
-  box-shadow: 0 1px 2px rgba(14, 34, 51, 0.04);
+  border: 1px solid #D5DDE4;
+  box-shadow: 0 1px 0 rgba(10, 26, 42, 0.03);
 }
 
-::selection { background: #1B496533; }
+/* Fine-grained chart-paper grid behind the login screen only. */
+.chart-grid {
+  background-color: #0A1A2A;
+  background-image:
+    linear-gradient(rgba(143, 166, 186, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(143, 166, 186, 0.07) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
 
 .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
-.scrollbar-thin::-webkit-scrollbar-thumb { background: #C7C3B8; border-radius: 4px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: #BAC6D0; border-radius: 4px; }
 .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
 
-table { font-variant-numeric: tabular-nums; }
-
 .focus-ring:focus-visible {
-  outline: 2px solid #1B4965;
+  outline: 2px solid #0B5E8E;
   outline-offset: 2px;
 }
 

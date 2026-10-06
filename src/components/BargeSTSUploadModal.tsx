@@ -174,7 +174,7 @@ export default function BargeSTSUploadModal({
                   </div>
                 ))}
               </div>
-              <button onClick={runGenericPreview} className="mt-4 rounded-md bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-sm hover:shadow-md transition-shadow px-4 py-2 text-xs font-medium">
+              <button onClick={runGenericPreview} className="mt-4 rounded-md bg-brand-500 hover:bg-brand-600 text-white shadow-sm hover:shadow-md transition-shadow px-4 py-2 text-xs font-medium">
                 Sort & Preview
               </button>
             </div>
@@ -237,7 +237,7 @@ export default function BargeSTSUploadModal({
               <button
                 onClick={confirmSave}
                 disabled={busy || previewOps.length === 0}
-                className="mt-4 rounded-md bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-sm hover:shadow-md transition-shadow px-4 py-2 text-xs font-medium disabled:opacity-40"
+                className="mt-4 rounded-md bg-brand-500 hover:bg-brand-600 text-white shadow-sm hover:shadow-md transition-shadow px-4 py-2 text-xs font-medium disabled:opacity-40"
               >
                 {busy ? "Saving…" : `Save ${previewOps.length} Records to ${barge.name}`}
               </button>
