@@ -332,7 +332,7 @@ export const ColumnMappingModal: React.FC<ColumnMappingModalProps> = ({
           {/* Column Mappings Configuration */}
           <div>
             <div className="text-[11px] font-bold text-paper-300 mb-2 flex items-center justify-between">
-              <span>Map Table Columns to Reconciliation Fields</span>
+              <span>Map Table Columns to Market Analyzer Fields</span>
               <span className="text-blue-700 font-normal">Auto-detected best matches</span>
             </div>
 

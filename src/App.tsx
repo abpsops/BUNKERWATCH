@@ -32,7 +32,8 @@ export default function App() {
             <Route path="/vessel-lookup" element={<VesselLookup />} />
             <Route path="/barge-map" element={<BargeMap />} />
             <Route path="/reports" element={<Reports />} />
-            <Route path="/reconciliation" element={<Reconciliation />} />
+            <Route path="/market-analyzer" element={<Reconciliation />} />
+            <Route path="/reconciliation" element={<Navigate to="/market-analyzer" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
