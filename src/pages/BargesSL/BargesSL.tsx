@@ -164,7 +164,7 @@ export default function BargesSL() {
           <button
             onClick={downloadAllPdf}
             disabled={trackedBarges.length === 0}
-            className="flex items-center gap-1.5 rounded-md bg-vivid-blue px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:brightness-110 transition-all focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 rounded-md bg-brand-500 hover:bg-brand-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-colors focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <FileText size={13} /> Download All (PDF)
           </button>
@@ -214,7 +214,7 @@ export default function BargesSL() {
                         <button
                           onClick={() => addVessel(e)}
                           disabled={!isValidIMO(imoVal)}
-                          className="flex items-center gap-1.5 rounded-md bg-vivid-purple text-white shadow-sm hover:brightness-110 transition-all px-2.5 py-1 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="flex items-center gap-1.5 rounded-md bg-brand-500 hover:bg-brand-600 text-white shadow-sm transition-colors px-2.5 py-1 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           <Plus size={12} /> Add to Tracker
                         </button>
@@ -243,14 +243,14 @@ export default function BargesSL() {
                         />
                         <button
                           onClick={() => fileInputRefs.current[b.id]?.click()}
-                          className="rounded-md border border-vivid-cyan/50 text-vivid-cyan px-2.5 py-1 text-xs font-medium hover:bg-vivid-cyan-tint transition-colors focus-ring"
+                          className="rounded-md border border-ink-600 bg-white text-paper-300 px-2.5 py-1 text-xs font-medium hover:bg-ink-800 transition-colors focus-ring"
                         >
                           Upload
                         </button>
                         <button
                           onClick={() => pendingFile && setAnalysingBarge(b)}
                           disabled={!pendingFile}
-                          className="rounded-md bg-vivid-teal text-white shadow-sm hover:brightness-110 transition-all px-2.5 py-1 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="rounded-md bg-brand-500 hover:bg-brand-600 text-white shadow-sm transition-colors px-2.5 py-1 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           Analyse
                         </button>
@@ -277,7 +277,7 @@ export default function BargesSL() {
                         onClick={() => downloadVesselPdf(b)}
                         disabled={s.ops === 0}
                         title={s.ops === 0 ? "Analyse a file first" : `Report ${b.name} to PDF`}
-                        className="flex items-center gap-1.5 rounded-md bg-vivid-blue text-white shadow-sm hover:brightness-110 transition-all px-2.5 py-1 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1.5 rounded-md border border-ink-600 bg-white text-paper-300 hover:bg-ink-800 transition-colors px-2.5 py-1 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <FileText size={12} /> Report (PDF)
                       </button>

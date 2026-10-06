@@ -284,13 +284,13 @@ export default function Barges() {
           <div className="flex items-center gap-2">
             <button
               onClick={downloadExcel}
-              className="flex items-center gap-1.5 rounded-md bg-vivid-green px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:brightness-110 transition-all focus-ring"
+              className="flex items-center gap-1.5 rounded-md border border-ink-600 bg-white text-paper-300 hover:bg-ink-800 px-3 py-1.5 text-xs font-medium transition-colors focus-ring"
             >
               <FileSpreadsheet size={13} /> Download All (Excel)
             </button>
             <button
               onClick={downloadPdf}
-              className="flex items-center gap-1.5 rounded-md bg-vivid-blue px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:brightness-110 transition-all focus-ring"
+              className="flex items-center gap-1.5 rounded-md bg-brand-500 hover:bg-brand-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-colors focus-ring"
             >
               <FileText size={13} /> Download All (PDF)
             </button>
@@ -303,7 +303,7 @@ export default function Barges() {
             </button>
             <button
               onClick={() => setShowBulk((s) => !s)}
-              className="flex items-center gap-1.5 rounded-md bg-vivid-purple px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:brightness-110 transition-all focus-ring"
+              className="flex items-center gap-1.5 rounded-md bg-brand-500 hover:bg-brand-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-colors focus-ring"
             >
               <Plus size={13} /> Bulk Add Barges
             </button>
@@ -371,7 +371,7 @@ export default function Barges() {
             <button
               onClick={submitBulk}
               disabled={!competitorId || validImos.length === 0}
-              className="rounded-md bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-sm hover:shadow-md transition-shadow px-3 py-1.5 text-xs font-medium disabled:opacity-40"
+              className="rounded-md bg-brand-500 hover:bg-brand-600 text-white shadow-sm hover:shadow-md transition-shadow px-3 py-1.5 text-xs font-medium disabled:opacity-40"
             >
               Add {validImos.length || ""} Barges
             </button>
@@ -467,14 +467,14 @@ export default function Barges() {
                         />
                         <button
                           onClick={() => fileInputRefs.current[b.id]?.click()}
-                          className="rounded-md border border-vivid-cyan/50 text-vivid-cyan px-2.5 py-1 text-xs font-medium hover:bg-vivid-cyan-tint transition-colors focus-ring"
+                          className="rounded-md border border-ink-600 bg-white text-paper-300 px-2.5 py-1 text-xs font-medium hover:bg-ink-800 transition-colors focus-ring"
                         >
                           Upload
                         </button>
                         <button
                           onClick={() => pendingFile && setAnalysingBarge(b)}
                           disabled={!pendingFile}
-                          className="rounded-md bg-vivid-teal text-white shadow-sm hover:brightness-110 transition-all px-2.5 py-1 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="rounded-md bg-brand-500 hover:bg-brand-600 text-white shadow-sm transition-colors px-2.5 py-1 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           Analyse
                         </button>

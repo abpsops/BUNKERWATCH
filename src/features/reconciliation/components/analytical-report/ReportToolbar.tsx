@@ -91,7 +91,7 @@ export const ReportToolbar: React.FC<ReportToolbarProps> = ({
           <button
             onClick={() => setOpen(o => !o)}
             disabled={busy}
-            className="flex items-center gap-1.5 rounded-md bg-vivid-blue px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:brightness-110 focus-ring disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-md bg-brand-500 hover:bg-brand-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition focus-ring disabled:opacity-50"
           >
             {busy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
             {busy ? 'Preparing…' : 'Download'}

@@ -135,7 +135,7 @@ function ReportCard({ title, description, onExport }: { title: string; descripti
       <p className="mt-1 text-xs text-paper-500">{description}</p>
       <button
         onClick={onExport}
-        className="mt-4 flex items-center gap-1.5 rounded-md bg-vivid-cyan px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:brightness-110 transition-all focus-ring"
+        className="mt-4 flex items-center gap-1.5 rounded-md border border-ink-600 bg-white text-paper-300 hover:bg-ink-800 px-3 py-1.5 text-xs font-medium transition-colors focus-ring"
       >
         <Download size={13} /> Export CSV
       </button>

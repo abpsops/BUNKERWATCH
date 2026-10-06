@@ -9,7 +9,7 @@ import { exportToCsv } from '@/lib/exportCsv';
  */
 /** Page background of the app (ink-950), so captured reports match the UI. */
 function currentPageBackground(): string {
-  return '#F6F4EF';
+  return '#EBEFF2';
 }
 
 export function exportReconciliationToExcel(records: ReconciledRecord[], summary?: ReconciliationSummary): void {
@@ -213,12 +213,12 @@ export function exportColorizedExcel(records: ReconciledRecord[], summary?: Reco
       <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-        .title { font-size: 18pt; font-weight: bold; color: #0E2233; }
+        .title { font-size: 18pt; font-weight: bold; color: #0A1A2A; }
         .subtitle { font-size: 10pt; color: #64748b; margin-bottom: 12px; }
         table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
-        th { background-color: #0E2233; color: #ffffff; font-weight: bold; text-align: left; padding: 10px 8px; border: 1px solid #334155; font-size: 10pt; }
+        th { background-color: #0A1A2A; color: #ffffff; font-weight: bold; text-align: left; padding: 10px 8px; border: 1px solid #334155; font-size: 10pt; }
         td { padding: 8px; border: 1px solid #cbd5e1; font-size: 9.5pt; }
-        .kpi-table th { background-color: #15304A; color: #f8fafc; }
+        .kpi-table th { background-color: #112B42; color: #f8fafc; }
         .badge-gps { background-color: #d1fae5; color: #065f46; font-weight: bold; border-radius: 4px; padding: 3px 8px; text-align: center; }
         .badge-comp { background-color: #fef3c7; color: #92400e; font-weight: bold; border-radius: 4px; padding: 3px 8px; text-align: center; }
         .badge-unv { background-color: #f1f5f9; color: #475569; font-weight: bold; border-radius: 4px; padding: 3px 8px; text-align: center; }
@@ -372,33 +372,33 @@ export function downloadColoredHtmlReport(records: ReconciledRecord[], summary: 
   <title>BunkerWatch Executive Report</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #F6F4EF; color: #161B22; padding: 24px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #EBEFF2; color: #0C1B2A; padding: 24px; }
     .container { max-width: 1200px; margin: 0 auto; }
-    .header { background: #0E2233; border: 1px solid #0E2233; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .header { background: #0A1A2A; border: 1px solid #0A1A2A; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
     .title { font-size: 20px; font-weight: 600; color: #ffffff; }
-    .subtitle { font-size: 12px; color: #9FB4C7; margin-top: 4px; }
+    .subtitle { font-size: 12px; color: #8FA6BA; margin-top: 4px; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .card { background: #ffffff; border: 1px solid #E4E1D8; border-radius: 12px; padding: 16px; }
-    .card-title { font-size: 12px; color: #3D4550; font-weight: 600; margin-bottom: 6px; }
+    .card { background: #ffffff; border: 1px solid #D5DDE4; border-radius: 12px; padding: 16px; }
+    .card-title { font-size: 12px; color: #3B4B5C; font-weight: 600; margin-bottom: 6px; }
     .card-val { font-size: 24px; font-weight: 700; font-family: monospace; }
-    .card-sub { font-size: 12px; color: #6B7280; margin-top: 4px; }
+    .card-sub { font-size: 12px; color: #5B6C7E; margin-top: 4px; }
     .emerald { color: #16A34A; border-color: #86EFAC; }
     .amber { color: #D97706; border-color: #FCD34D; }
     .blue { color: #2563EB; border-color: #93C5FD; }
     .cyan { color: #0891B2; }
-    .slate { color: #6B7280; }
-    .progress-bar { height: 8px; background: #EFEDE7; border-radius: 4px; overflow: hidden; margin-top: 8px; }
+    .slate { color: #5B6C7E; }
+    .progress-bar { height: 8px; background: #EDF1F4; border-radius: 4px; overflow: hidden; margin-top: 8px; }
     .fill-emerald { height: 100%; background: #16A34A; }
     .fill-amber { height: 100%; background: #D97706; }
-    .table-card { background: #ffffff; border: 1px solid #E4E1D8; border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+    .table-card { background: #ffffff; border: 1px solid #D5DDE4; border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    th { background: #FAFAF8; padding: 12px 10px; text-align: left; color: #6B7280; font-weight: 600; border-bottom: 1px solid #E4E1D8; }
-    td { padding: 10px; border-bottom: 1px solid #EFEDE7; }
+    th { background: #F6F8FA; padding: 12px 10px; text-align: left; color: #5B6C7E; font-weight: 600; border-bottom: 1px solid #D5DDE4; }
+    td { padding: 10px; border-bottom: 1px solid #EDF1F4; }
     .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 10px; font-family: monospace; }
     .badge-gps { background: #E9F8EE; color: #15803D; border: 1px solid #BBF7D0; }
     .badge-comp { background: #FCF1E1; color: #B45309; border: 1px solid #FDE68A; }
-    .badge-unv { background: #EFEDE7; color: #6B7280; border: 1px solid #DDDAD1; }
-    @media print { body { background: #ffffff; color: #0f172a; } .card, .table-card { border-color: #DDDAD1; background: #ffffff; } th { background: #f1f5f9; color: #334155; } td { border-color: #e2e8f0; } }
+    .badge-unv { background: #EDF1F4; color: #5B6C7E; border: 1px solid #D5DDE4; }
+    @media print { body { background: #ffffff; color: #0f172a; } .card, .table-card { border-color: #D5DDE4; background: #ffffff; } th { background: #f1f5f9; color: #334155; } td { border-color: #e2e8f0; } }
   </style>
 </head>
 <body>
@@ -431,7 +431,7 @@ export function downloadColoredHtmlReport(records: ReconciledRecord[], summary: 
 
       <div class="card slate">
         <div class="card-title">Unverified Demand</div>
-        <div class="card-val" style="color: #3D4550;">${summary.unverifiedQty.toLocaleString()} MT</div>
+        <div class="card-val" style="color: #3B4B5C;">${summary.unverifiedQty.toLocaleString()} MT</div>
         <div class="card-sub">${summary.unverifiedCount} Open &bull; ${unvRate}% Pending</div>
       </div>
     </div>
