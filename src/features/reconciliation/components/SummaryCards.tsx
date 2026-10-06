@@ -213,7 +213,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ summary }) => {
       {/* Reconciliation Equation Strip */}
       <div className="bg-ink-900 border border-ink-700 rounded-lg px-4 py-2.5 flex flex-wrap items-center justify-between text-xs text-paper-300 gap-2">
         <div className="flex items-center space-x-2 font-medium">
-          <span className="text-paper-500">Reconciliation Flow:</span>
+          <span className="text-paper-500">Market Analyzer Flow:</span>
           <span className="text-paper-100 font-bold">{summary.totalEnquiryQty.toLocaleString()} MT</span>
           <ArrowRight className="w-3.5 h-3.5 text-paper-500 inline" />
           <span className="text-emerald-700 font-semibold">{summary.gpsMatchedQty.toLocaleString()} MT (GPS)</span>

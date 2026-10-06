@@ -31,7 +31,7 @@ const NAV_SECTIONS: {
     label: "Reports",
     items: [
       { to: "/reports", label: "Reports", icon: FileBarChart },
-      { to: "/reconciliation", label: "Reconciliation", icon: GitCompareArrows },
+      { to: "/market-analyzer", label: "Market Analyzer", icon: GitCompareArrows },
     ],
   },
 ]

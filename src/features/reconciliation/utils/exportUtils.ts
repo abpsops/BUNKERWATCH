@@ -48,7 +48,7 @@ export function exportReconciliationToExcel(records: ReconciledRecord[], summary
   worksheet['!cols'] = colWidths;
 
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Reconciliation');
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Market Analyzer');
 
   if (summary) {
     const summaryData = [
@@ -74,7 +74,7 @@ export function exportReconciliationToExcel(records: ReconciledRecord[], summary
     XLSX.utils.book_append_sheet(workbook, summarySheet, 'Executive Summary');
   }
 
-  const filename = `BunkerWatch-Reconciliation-${new Date().toISOString().split('T')[0]}.xlsx`;
+  const filename = `BunkerWatch-Market-Analyzer-${new Date().toISOString().split('T')[0]}.xlsx`;
   XLSX.writeFile(workbook, filename);
 }
 
@@ -83,7 +83,7 @@ export function exportReconciliationToExcel(records: ReconciledRecord[], summary
  */
 export function exportReconciliationToCSV(records: ReconciledRecord[]): void {
   exportToCsv(
-    `BunkerWatch-Reconciliation-${new Date().toISOString().split('T')[0]}.csv`,
+    `BunkerWatch-Market-Analyzer-${new Date().toISOString().split('T')[0]}.csv`,
     records.map(r => ({
       'Date': r.date || '',
       'Vessel': r.vesselName,
@@ -203,7 +203,7 @@ export function exportColorizedExcel(records: ReconciledRecord[], summary?: Reco
         <x:ExcelWorkbook>
           <x:ExcelWorksheets>
             <x:ExcelWorksheet>
-              <x:Name>Colored Reconciliation</x:Name>
+              <x:Name>Colored Market Analyzer</x:Name>
               <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
             </x:ExcelWorksheet>
           </x:ExcelWorksheets>
@@ -297,7 +297,7 @@ export function exportColorizedExcel(records: ReconciledRecord[], summary?: Reco
             <th>GPS Barge</th>
             <th style="background-color: #b45309;">Competitor Name</th>
             <th style="text-align: right;">Tracking Qty</th>
-            <th style="text-align: center;">Reconciliation Status</th>
+            <th style="text-align: center;">Match Status</th>
           </tr>
         </thead>
         <tbody>

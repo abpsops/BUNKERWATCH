@@ -67,7 +67,7 @@ describe('reconciliation views render', () => {
 
   it('renders the Reconciliation page (empty state) inside the app providers', async () => {
     const { container, unmount } = await mount(<Reconciliation />);
-    expect(container.textContent).toContain('Reconciliation');
+    expect(container.textContent).toContain('Market Analyzer');
     expect(container.textContent).toContain('No enquiry data uploaded');
     unmount();
   });

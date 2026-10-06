@@ -21,7 +21,7 @@ type ActiveView = 'analytics' | 'table' | 'competitors' | 'periods';
 
 const VIEW_TABS: { id: ActiveView; label: string; icon: React.ElementType }[] = [
   { id: 'analytics', label: 'Analytical report', icon: BarChart3 },
-  { id: 'table', label: 'Reconciliation table', icon: FileSpreadsheet },
+  { id: 'table', label: 'Market table', icon: FileSpreadsheet },
   { id: 'competitors', label: 'Competitor intelligence', icon: Award },
   { id: 'periods', label: 'Period analysis', icon: Calendar }
 ];
@@ -63,17 +63,17 @@ export default function Reconciliation() {
 
   const handleExportExcel = () => {
     exportReconciliationToExcel(reconciledRecords, summary);
-    showToast('Reconciliation exported to Excel (.xlsx).');
+    showToast('Market analysis exported to Excel (.xlsx).');
   };
   const handleExportCSV = () => {
     exportReconciliationToCSV(reconciledRecords);
-    showToast('Reconciliation exported to CSV.');
+    showToast('Market analysis exported to CSV.');
   };
 
   return (
     <div>
       <PageHeader
-        title="Reconciliation"
+        title="Market Analyzer"
         subtitle="Match enquiries against FLOW/GPS supplies and STS tracking to see what was won, lost to competitors, or left unverified."
         actions={
           <>

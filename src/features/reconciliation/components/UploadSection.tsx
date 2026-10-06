@@ -60,7 +60,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-ink-700 text-xs text-paper-300">
         <div className="flex items-center space-x-2">
           <Info className="w-4 h-4 text-blue-700 shrink-0" />
-          <span className="font-semibold text-paper-100">Reconciliation Data Sources:</span>
+          <span className="font-semibold text-paper-100">Market Analyzer Data Sources:</span>
           <span className="hidden sm:inline text-paper-500">
             Flow Report = GPS Report &bull; Tracking Report = STS Bunkering &bull; Enquiry Report = Enquiry Data
           </span>
