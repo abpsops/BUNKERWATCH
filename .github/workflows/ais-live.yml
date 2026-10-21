@@ -13,15 +13,19 @@ name: AIS Live Worker
 # as general compute — if this ever gets flagged, move to the Oracle Cloud
 # Always Free VM described in worker/deploy/oracle-free-vm.md.
 
+# PAUSED (21 Oct 2026): AISStream has been rejecting/dropping connections for
+# months (aisstream/issues #15, #272, #291), so running this chain only burns
+# minutes. Re-enable the schedule + push triggers below once a working AIS
+# feed is wired in (see worker/README.md → "AIS feed status").
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "*/30 * * * *"
-  push:
-    branches: [main]
-    paths:
-      - "worker/**"
-      - ".github/workflows/ais-live.yml"
+  # schedule:
+  #   - cron: "*/30 * * * *"
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - "worker/**"
+  #     - ".github/workflows/ais-live.yml"
 
 concurrency:
   group: ais-live
@@ -53,7 +57,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           MAX_RUNTIME_MS: "20400000"
       - name: Dispatch next job
-        if: always()
+        if: ${{ always() && vars.AIS_LIVE_CHAIN == 'on' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run ais-live.yml --ref main
