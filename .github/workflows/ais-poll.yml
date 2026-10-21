@@ -1,16 +1,9 @@
 name: AIS STS Detection Poll
 
+# Superseded by ais-live.yml (continuous worker). Kept for manual runs only;
+# running both at once would double-connect to AISStream for no benefit.
 on:
-  schedule:
-    # Every 15 minutes. GitHub does not guarantee exact timing under load,
-    # so treat this as "roughly every 15 minutes," not a precise clock.
-    - cron: "*/15 * * * *"
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "worker/**"
-      - ".github/workflows/ais-poll.yml"
 
 jobs:
   poll:

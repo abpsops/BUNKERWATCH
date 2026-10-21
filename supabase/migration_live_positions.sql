@@ -9,7 +9,7 @@
 
 -- ------------------------------------------------------------
 -- Latest fix per vessel — one row per MMSI, upserted continuously.
--- This is the table the Live Map subscribes to.
+-- This is the table the Live Map polls.
 -- ------------------------------------------------------------
 create table vessel_positions (
   mmsi bigint primary key,
@@ -36,10 +36,10 @@ create policy vessel_positions_read on vessel_positions
 -- No insert/update policy for anon/authenticated: only the worker's
 -- service-role key (which bypasses RLS) may write.
 
--- Push row changes to browsers over Supabase Realtime.
-alter publication supabase_realtime add table vessel_positions;
--- Realtime needs the full old row to emit UPDATE/DELETE payloads under RLS.
-alter table vessel_positions replica identity full;
+-- Deliberately NOT added to the Realtime publication: with hundreds of
+-- vessels upserted every few seconds, postgres_changes would burn through
+-- the free tier's monthly message quota in days. The Live Map polls this
+-- table every 10 s instead — plain reads, which are effectively free.
 
 -- ------------------------------------------------------------
 -- History — append-only track points, for replaying "who was alongside

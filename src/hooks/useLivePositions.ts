@@ -20,77 +20,68 @@ export type LiveStatus = "demo" | "connecting" | "live" | "reconnecting"
 
 /** Drop vessels not heard from in this long — they've left the box or gone dark. */
 const STALE_MS = 2 * 60 * 60 * 1000
+/** Poll interval. Plain selects don't count against Supabase's Realtime quota, so this is free. */
+const POLL_MS = 10_000
 
 /**
- * Initial snapshot of `vessel_positions` followed by a Realtime subscription
- * that patches rows in place as the worker upserts them. Every vessel in the
- * Fujairah bounding box is kept — the page decides what to emphasise.
+ * Polls `vessel_positions` every 10 s (only rows changed since the last
+ * poll, after the first full snapshot) and patches the in-memory map. Every
+ * vessel in the Fujairah bounding box is kept — the page decides what to
+ * emphasise. Polling pauses while the tab is hidden.
  */
 export function useLivePositions() {
   const [positions, setPositions] = useState<Map<number, LivePosition>>(() => new Map())
   const [status, setStatus] = useState<LiveStatus>(supabase ? "connecting" : "demo")
   const [lastEventAt, setLastEventAt] = useState<number | null>(null)
-  const mountedRef = useRef(true)
+  const lastSeenRef = useRef<string | null>(null)
 
   useEffect(() => {
-    mountedRef.current = true
     if (!supabase) return
     const client = supabase
+    let cancelled = false
+    let failures = 0
 
-    const applyRow = (row: LivePosition) => {
-      if (!mountedRef.current) return
-      setPositions((prev) => {
-        const next = new Map(prev)
-        next.set(Number(row.mmsi), { ...row, mmsi: Number(row.mmsi), latitude: Number(row.latitude), longitude: Number(row.longitude) })
-        return next
-      })
-      setLastEventAt(Date.now())
-    }
+    const normalise = (row: LivePosition): LivePosition => ({
+      ...row,
+      mmsi: Number(row.mmsi),
+      latitude: Number(row.latitude),
+      longitude: Number(row.longitude),
+    })
 
-    const loadSnapshot = async () => {
-      const since = new Date(Date.now() - STALE_MS).toISOString()
+    const poll = async () => {
+      if (document.hidden) return
+      const since = lastSeenRef.current ?? new Date(Date.now() - STALE_MS).toISOString()
       const { data, error } = await client
         .from("vessel_positions")
         .select("*")
-        .gte("received_at", since)
-      if (error || !mountedRef.current) return
-      const next = new Map<number, LivePosition>()
-      for (const row of (data ?? []) as LivePosition[]) {
-        next.set(Number(row.mmsi), { ...row, mmsi: Number(row.mmsi), latitude: Number(row.latitude), longitude: Number(row.longitude) })
+        .gte("updated_at", since)
+        .order("updated_at", { ascending: true })
+      if (cancelled) return
+      if (error) {
+        failures++
+        if (failures >= 3) setStatus("reconnecting")
+        return
       }
-      setPositions(next)
-      setLastEventAt(Date.now())
+      failures = 0
+      const rows = (data ?? []) as (LivePosition & { updated_at: string })[]
+      if (rows.length > 0) {
+        lastSeenRef.current = rows[rows.length - 1].updated_at
+        setPositions((prev) => {
+          const next = new Map(prev)
+          for (const r of rows) next.set(Number(r.mmsi), normalise(r))
+          return next
+        })
+        setLastEventAt(Date.now())
+      }
+      setStatus("live")
     }
 
-    void loadSnapshot()
-
-    const channel = client
-      .channel("vessel_positions_live")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "vessel_positions" },
-        (payload) => {
-          if (payload.eventType === "DELETE") {
-            const mmsi = Number((payload.old as { mmsi?: number }).mmsi)
-            setPositions((prev) => {
-              const next = new Map(prev)
-              next.delete(mmsi)
-              return next
-            })
-            return
-          }
-          applyRow(payload.new as LivePosition)
-        }
-      )
-      .subscribe((state) => {
-        if (!mountedRef.current) return
-        if (state === "SUBSCRIBED") {
-          setStatus("live")
-          void loadSnapshot() // catch anything missed while (re)connecting
-        } else if (state === "CHANNEL_ERROR" || state === "TIMED_OUT" || state === "CLOSED") {
-          setStatus("reconnecting")
-        }
-      })
+    void poll()
+    const timer = setInterval(poll, POLL_MS)
+    const onVisible = () => {
+      if (!document.hidden) void poll()
+    }
+    document.addEventListener("visibilitychange", onVisible)
 
     // Periodically sweep vessels that have gone silent.
     const sweep = setInterval(() => {
@@ -109,9 +100,10 @@ export function useLivePositions() {
     }, 60_000)
 
     return () => {
-      mountedRef.current = false
+      cancelled = true
+      clearInterval(timer)
       clearInterval(sweep)
-      void client.removeChannel(channel)
+      document.removeEventListener("visibilitychange", onVisible)
     }
   }, [])
 

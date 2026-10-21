@@ -21,6 +21,9 @@ const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY")
 const BARGE_REFRESH_MS = 5 * 60 * 1000
 const SWEEP_INTERVAL_MS = 60 * 1000
 const FIX_STALE_MS = 15 * 60 * 1000 // ignore fixes older than this when pairing
+// Optional: exit cleanly after this many ms (used by the GitHub Actions
+// "live" workflow, whose jobs are capped at 6 hours and chain into the next).
+const MAX_RUNTIME_MS = Number(process.env.MAX_RUNTIME_MS ?? 0)
 
 function requireEnv(name: string): string {
   const v = process.env[name]
@@ -101,6 +104,12 @@ async function main() {
   }
   process.on("SIGINT", shutdown)
   process.on("SIGTERM", shutdown)
+  if (MAX_RUNTIME_MS > 0) {
+    setTimeout(() => {
+      console.log(`[runtime] reached MAX_RUNTIME_MS (${Math.round(MAX_RUNTIME_MS / 60000)} min), handing over`)
+      void shutdown()
+    }, MAX_RUNTIME_MS)
+  }
 }
 
 main().catch((err) => {
