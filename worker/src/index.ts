@@ -11,6 +11,7 @@ if (!(globalThis as any).WebSocket) {
 
 import { AisStreamWorkerClient } from "./aisClient.js"
 import { ShipFinderPoller, ShipFinderFleetPoller, type FleetVessel } from "./shipfinderClient.js"
+import { ShipFinderStsSync, zoneLabel } from "./stsSync.js"
 import { EncounterTracker, type VesselFix } from "./detection.js"
 import { makeSupabaseWriter, type TrackedBarge } from "./supabaseWriter.js"
 import { makePositionWriter } from "./positionWriter.js"
@@ -22,6 +23,14 @@ const SHIPFINDER_API_KEY = process.env.SHIPFINDER_API_KEY || ""
 // "zone" polls every vessel in the Fujairah polygon (needs that entitlement).
 const SHIPFINDER_MODE = (process.env.SHIPFINDER_MODE ?? "fleet").toLowerCase()
 const SHIPFINDER_POLL_MS = Number(process.env.SHIPFINDER_POLL_MS ?? (SHIPFINDER_MODE === "zone" ? 60_000 : 300_000))
+// STS activity sync: last 7 days of alongside events per barge, every
+// SHIPFINDER_STS_SYNC_MS (default 6 h), for the zones listed (1 port,
+// 2 anchorage, 3 offshore). Set SHIPFINDER_STS_SYNC_MS=0 to disable.
+const SHIPFINDER_STS_SYNC_MS = Number(process.env.SHIPFINDER_STS_SYNC_MS ?? 6 * 60 * 60 * 1000)
+const SHIPFINDER_STS_ZONES = (process.env.SHIPFINDER_STS_ZONES ?? "2,1,3")
+  .split(",")
+  .map((z) => Number(z.trim()))
+  .filter((z): z is 1 | 2 | 3 => z === 1 || z === 2 || z === 3)
 const AISSTREAM_API_KEY = process.env.AISSTREAM_API_KEY || ""
 if (!SHIPFINDER_API_KEY && !AISSTREAM_API_KEY) {
   console.error("Set SHIPFINDER_API_KEY and/or AISSTREAM_API_KEY")
@@ -113,6 +122,19 @@ async function main() {
       if (n === 1 || n % 10 === 0) void writer.writeDiagnostic("shipfinder_error", { message: err.message, consecutive: n })
     })
     sources.push({ name: `shipfinder:${SHIPFINDER_MODE}`, start: () => sf.start(), stop: () => sf.stop() })
+  }
+  if (SHIPFINDER_API_KEY && SHIPFINDER_STS_SYNC_MS > 0) {
+    const bargeByMmsi = () => new Map([...bargesByImo.values()].filter((b) => b.mmsi).map((b) => [Number(b.mmsi), b]))
+    const sync = new ShipFinderStsSync(SHIPFINDER_API_KEY, SHIPFINDER_STS_SYNC_MS, SHIPFINDER_STS_ZONES, {
+      getFleet: () => [...bargesByImo.values()] as FleetVessel[],
+      isTrackedBarge: (mmsi, imo) => bargeByMmsi().has(mmsi) || (!!imo && bargesByImo.has(imo)),
+      write: (v, ev, cls) => {
+        const barge = bargesByImo.get(v.imo)
+        return barge ? writer.writeShipFinderSts(barge, ev, cls, zoneLabel(ev)) : Promise.resolve()
+      },
+      onError: (err) => void writer.writeDiagnostic("shipfinder_sts_error", { message: err.message }),
+    })
+    sources.push({ name: "shipfinder:sts", start: () => sync.start(), stop: () => sync.stop() })
   }
   if (AISSTREAM_API_KEY) {
     const ais = new AisStreamWorkerClient(AISSTREAM_API_KEY)

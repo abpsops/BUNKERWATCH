@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js"
 import type { DetectedEncounter } from "./detection.js"
+import type { StsEvent, OperationType } from "./stsSync.js"
 
 export interface TrackedBarge {
   id: string
@@ -43,6 +44,43 @@ export function makeSupabaseWriter(url: string, serviceRoleKey: string) {
     async setBargeMmsi(bargeId: string, mmsi: string): Promise<void> {
       const { error } = await client.from("barges").update({ mmsi }).eq("id", bargeId)
       if (error) console.error("[fleet] mmsi cache failed:", error.message)
+    },
+
+    /** An alongside event reported by ShipFinder's STS history for a tracked barge. */
+    async writeShipFinderSts(
+      barge: TrackedBarge,
+      ev: StsEvent,
+      cls: { type: OperationType; confidence: "high" | "medium" | "low" },
+      location: string
+    ) {
+      const sourceRecordId = `sf_${ev.bargeMmsi}_${ev.otherMmsi}_${Math.floor(ev.startMs / 1000)}`
+      const { error } = await client.from("sts_operations").upsert(
+        {
+          organization_id: barge.organization_id,
+          barge_id: barge.id,
+          barge_imo: barge.imo,
+          barge_name: barge.name,
+          competitor_id: barge.competitor_id,
+          competitor_name: barge.competitor_name,
+          receiving_vessel_id: null,
+          receiving_vessel_imo: ev.otherImo,
+          receiving_vessel_name: ev.otherName ?? `MMSI ${ev.otherMmsi}`,
+          operation_date: new Date(ev.startMs).toISOString().slice(0, 10),
+          start_time: new Date(ev.startMs).toISOString().slice(11, 16),
+          end_time: new Date(ev.endMs).toISOString().slice(11, 16),
+          duration_minutes: ev.durationMin,
+          location,
+          latitude: ev.latitude,
+          longitude: ev.longitude,
+          operation_type: cls.type,
+          raw_operation_label: `ShipFinder STS event (${ev.durationMin} min alongside)`,
+          source_provider: "shipfinder",
+          source_record_id: sourceRecordId,
+          confidence: cls.confidence,
+        },
+        { onConflict: "organization_id,source_provider,source_record_id", ignoreDuplicates: true }
+      )
+      if (error) console.error("[supabase] sts write failed:", error.message)
     },
 
     async writeDetectedEncounter(barge: TrackedBarge, enc: DetectedEncounter) {

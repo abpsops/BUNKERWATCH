@@ -55,6 +55,8 @@ jobs:
           SHIPFINDER_API_KEY: ${{ secrets.SHIPFINDER_API_KEY }}
           SHIPFINDER_MODE: ${{ vars.SHIPFINDER_MODE || 'fleet' }}
           SHIPFINDER_POLL_MS: ${{ vars.SHIPFINDER_POLL_MS || '300000' }}
+          SHIPFINDER_STS_SYNC_MS: ${{ vars.SHIPFINDER_STS_SYNC_MS || '21600000' }}
+          SHIPFINDER_STS_ZONES: ${{ vars.SHIPFINDER_STS_ZONES || '2,1,3' }}
           AISSTREAM_API_KEY: ${{ secrets.AISSTREAM_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
