@@ -234,14 +234,23 @@ export default function LiveMap() {
                     {(p.speed_knots ?? 0).toFixed(1)} kn
                     {p.course_deg !== null && <> · COG {Math.round(p.course_deg)}°</>}
                     {p.nav_status !== null && NAV_STATUS[p.nav_status] && <> · {NAV_STATUS[p.nav_status]}</>}
+                    {(p.length_m || p.draught_m || p.call_sign) && (
+                      <>
+                        <br />
+                        {p.call_sign && <>{p.call_sign} · </>}
+                        {p.length_m && <>{p.length_m} m{p.width_m ? ` × ${p.width_m} m` : ""}</>}
+                        {p.draught_m && <> · draught {p.draught_m} m</>}
+                      </>
+                    )}
                     {p.destination && (
                       <>
                         <br />
                         Dest: {p.destination}
+                        {p.eta && <> · ETA {new Date(p.eta).toLocaleString(undefined, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</>}
                       </>
                     )}
                     <br />
-                    <span style={{ color: "#7F8E9C" }}>{ageLabel(p.received_at)}</span>
+                    <span style={{ color: "#7F8E9C" }}>{ageLabel(p.received_at)}{p.source === "shipfinder" ? " · ShipFinder" : ""}</span>
                   </div>
                 </Popup>
               </Marker>

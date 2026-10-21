@@ -14,6 +14,14 @@ export interface LivePosition {
   heading_deg: number | null
   nav_status: number | null
   received_at: string
+  // Extra particulars (ShipFinder feed); null on AISStream rows.
+  call_sign?: string | null
+  length_m?: number | null
+  width_m?: number | null
+  draught_m?: number | null
+  eta?: string | null
+  dest_code?: string | null
+  source?: string
 }
 
 export type LiveStatus = "demo" | "connecting" | "live" | "reconnecting"

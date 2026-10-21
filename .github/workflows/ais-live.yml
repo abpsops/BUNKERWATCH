@@ -52,6 +52,8 @@ jobs:
         working-directory: worker
         run: npm start
         env:
+          SHIPFINDER_API_KEY: ${{ secrets.SHIPFINDER_API_KEY }}
+          SHIPFINDER_POLL_MS: ${{ vars.SHIPFINDER_POLL_MS || '60000' }}
           AISSTREAM_API_KEY: ${{ secrets.AISSTREAM_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

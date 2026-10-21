@@ -12,6 +12,15 @@ export interface VesselFix {
   navStatus?: number | null
   shipType?: number | null
   destination?: string | null
+  source?: "aisstream" | "shipfinder"
+  extras?: {
+    callSign: string | null
+    lengthM: number | null
+    widthM: number | null
+    draughtM: number | null
+    eta: string | null
+    destCode: string | null
+  }
 }
 
 export interface DetectedEncounter {

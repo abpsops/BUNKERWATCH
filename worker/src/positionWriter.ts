@@ -42,6 +42,13 @@ export function makePositionWriter(url: string, serviceRoleKey: string) {
       course_deg: fix.courseDeg ?? null,
       heading_deg: fix.headingDeg ?? null,
       nav_status: fix.navStatus ?? null,
+      source: fix.source ?? "aisstream",
+      call_sign: fix.extras?.callSign ?? null,
+      length_m: fix.extras?.lengthM ?? null,
+      width_m: fix.extras?.widthM ?? null,
+      draught_m: fix.extras?.draughtM ?? null,
+      eta: fix.extras?.eta ?? null,
+      dest_code: fix.extras?.destCode ?? null,
       received_at: new Date(fix.timestamp).toISOString(),
       updated_at: new Date().toISOString(),
     }
