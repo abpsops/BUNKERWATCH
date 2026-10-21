@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { LayoutDashboard, Radar, Building2, Sailboat, Ship, FileBarChart, Search, MapPin, Target, GitCompareArrows, Menu, X, Radio } from "lucide-react"
 import GlobalSearch from "@/components/layout/GlobalSearch"
 import Logo from "@/components/ui/Logo"
+import LocalDataMigrationBanner from "@/components/layout/LocalDataMigrationBanner"
 
 const NAV_SECTIONS: {
   label: string
@@ -139,6 +140,7 @@ export default function DashboardLayout() {
         </header>
 
         <main className="flex-1 overflow-y-auto scrollbar-thin pb-10">
+          <LocalDataMigrationBanner />
           <Outlet />
         </main>
       </div>
