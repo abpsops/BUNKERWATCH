@@ -32,6 +32,8 @@ create index idx_user_profiles_org on user_profiles(organization_id);
 create or replace function current_org_id()
 returns uuid
 language sql stable
+security definer
+set search_path = public
 as $$
   select organization_id from user_profiles where id = auth.uid()
 $$;
@@ -282,7 +284,8 @@ create policy org_isolation_write on alerts for all using (organization_id = cur
 
 create policy org_isolation_select on audit_logs for select using (organization_id = current_org_id());
 
-create policy self_org_select on user_profiles for select using (organization_id = current_org_id());
+create policy self_select on user_profiles for select using (id = auth.uid());
+create policy org_select on user_profiles for select using (organization_id = current_org_id());
 
 -- vessels intentionally has no org scoping — it's a shared reference table
 -- of vessels observed across imports, not organization-owned data.
