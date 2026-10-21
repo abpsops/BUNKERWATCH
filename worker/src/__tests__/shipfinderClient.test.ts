@@ -40,14 +40,14 @@ describe("shipfinder client", () => {
     const calls: string[] = []
     const fetchImpl = (async (url: string) => {
       calls.push(url)
-      return { ok: true, json: async () => pages[calls.length - 1] }
+      return { ok: true, text: async () => JSON.stringify(pages[calls.length - 1]) }
     }) as unknown as typeof fetch
     const fixes = await fetchZone("k", FUJAIRAH_ZONE, fetchImpl)
     expect(fixes.map((f) => f.mmsi)).toEqual([370286000, 2, 3])
     expect(calls[0]).not.toContain("scode=")
     expect(calls[1]).toContain("scode=20")
 
-    const bad = (async () => ({ ok: true, json: async () => ({ status: 14, msg: "domain error" }) })) as unknown as typeof fetch
+    const bad = (async () => ({ ok: true, text: async () => JSON.stringify({ status: 14, msg: "domain error" }) })) as unknown as typeof fetch
     await expect(fetchZone("k", FUJAIRAH_ZONE, bad)).rejects.toThrow("status 14")
   })
 })
