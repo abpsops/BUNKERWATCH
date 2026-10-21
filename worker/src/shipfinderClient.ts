@@ -295,11 +295,16 @@ export class ShipFinderFleetPoller {
     if (this.timer) clearTimeout(this.timer)
   }
 
-  /** Fill in missing MMSIs. Returns the number of lookups attempted. */
-  private async resolveMissing(fleet: FleetVessel[]): Promise<number> {
+  /**
+   * Fill in missing MMSIs, a few per tick so a quota-limited key spreads the
+   * lookups out. A quota/frequency error stops resolution for this tick but
+   * never blocks the position poll for barges already resolved.
+   */
+  private async resolveMissing(fleet: FleetVessel[], maxLookups = 10): Promise<void> {
     let attempted = 0
     const now = Date.now()
     for (const v of fleet) {
+      if (attempted >= maxLookups) break
       if (v.mmsi || !/^\d{7}$/.test(v.imo)) continue
       const retryAt = this.unresolvable.get(v.imo) ?? 0
       if (retryAt > now) continue
@@ -315,11 +320,14 @@ export class ShipFinderFleetPoller {
           console.warn(`[shipfinder] no MMSI found for ${v.name} IMO ${v.imo}; retry in 24 h`)
         }
       } catch (err) {
+        const msg = (err as Error).message
+        console.error(`[shipfinder] search failed for IMO ${v.imo}:`, msg)
+        this.errorListeners.forEach((l) => l(err as Error, 0))
+        // Quota / frequency errors (12, 22, 23, 29, 38): stop searching for now.
+        if (/status (12|22|23|29|38)\b/.test(msg)) break
         this.unresolvable.set(v.imo, now + 60 * 60 * 1000)
-        throw err
       }
     }
-    return attempted
   }
 
   private async tick() {
