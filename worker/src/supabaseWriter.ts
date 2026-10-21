@@ -16,6 +16,11 @@ export function makeSupabaseWriter(url: string, serviceRoleKey: string) {
   const client = createClient(url, serviceRoleKey)
 
   return {
+    async writeDiagnostic(kind: string, payload: Record<string, unknown>): Promise<void> {
+      const { error } = await client.from("worker_diagnostics").insert({ kind, payload })
+      if (error) console.error("[diag] insert failed:", error.message)
+    },
+
     async loadTrackedBarges(): Promise<TrackedBarge[]> {
       const { data, error } = await client
         .from("barges")

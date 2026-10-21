@@ -97,6 +97,10 @@ async function main() {
   if (SHIPFINDER_API_KEY) {
     const sf = new ShipFinderPoller(SHIPFINDER_API_KEY, SHIPFINDER_POLL_MS)
     sf.onFix(onFix)
+    // Surface feed problems where they can be read without CI log access.
+    sf.onError((err, n) => {
+      if (n === 1 || n % 10 === 0) void writer.writeDiagnostic("shipfinder_error", { message: err.message, consecutive: n })
+    })
     sources.push({ name: "shipfinder", start: () => sf.start(), stop: () => sf.stop() })
   }
   if (AISSTREAM_API_KEY) {

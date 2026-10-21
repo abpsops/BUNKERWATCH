@@ -92,8 +92,14 @@ export async function fetchZone(apiKey: string, zone = FUJAIRAH_ZONE, fetchImpl 
     url.searchParams.set("output", "1")
     if (scode !== undefined) url.searchParams.set("scode", String(scode))
     const res = await fetchImpl(url.toString())
-    if (!res.ok) throw new Error(`ShipFinder HTTP ${res.status}`)
-    const body = (await res.json()) as ZoneResponse
+    const text = await res.text()
+    if (!res.ok) throw new Error(`ShipFinder HTTP ${res.status}: ${text.slice(0, 300)}`)
+    let body: ZoneResponse
+    try {
+      body = JSON.parse(text) as ZoneResponse
+    } catch {
+      throw new Error(`ShipFinder non-JSON response: ${text.slice(0, 300)}`)
+    }
     if (body.status !== 0) throw new Error(`ShipFinder status ${body.status}: ${body.msg || "(no message)"}`)
     const list = body.data?.ship_list ?? []
     for (const r of list) {
@@ -113,6 +119,7 @@ export class ShipFinderPoller {
   private timer: NodeJS.Timeout | null = null
   private running = false
   private consecutiveErrors = 0
+  private errorListeners = new Set<(err: Error, consecutive: number) => void>()
 
   constructor(
     private apiKey: string,
@@ -123,6 +130,11 @@ export class ShipFinderPoller {
   onFix(fn: FixListener) {
     this.listeners.add(fn)
     return () => this.listeners.delete(fn)
+  }
+
+  onError(fn: (err: Error, consecutive: number) => void) {
+    this.errorListeners.add(fn)
+    return () => this.errorListeners.delete(fn)
   }
 
   start() {
@@ -147,6 +159,7 @@ export class ShipFinderPoller {
     } catch (err) {
       this.consecutiveErrors++
       console.error(`[shipfinder] poll failed (${this.consecutiveErrors}x):`, (err as Error).message)
+      this.errorListeners.forEach((l) => l(err as Error, this.consecutiveErrors))
     }
     // Back off on repeated failures (quota exhausted, key rejected) so a dead
     // key doesn't hammer the API: 1x, 2x, 4x … up to 16x the interval.
