@@ -108,8 +108,20 @@ export default function TrackFKO() {
       }
       competitorId = comp.id
     }
-    if (!competitorId || !isValidIMO(imo)) return
-    await provider.upsertBarge({ name, imo, competitor_id: competitorId })
+    if (!competitorId) {
+      window.alert(`Choose a company for ${name} before adding it to the tracker.`)
+      return
+    }
+    if (!isValidIMO(imo)) {
+      window.alert(`Enter a valid 7-digit IMO for ${name} (got "${imo || "nothing"}").`)
+      return
+    }
+    try {
+      await provider.upsertBarge({ name, imo, competitor_id: competitorId })
+    } catch (e) {
+      window.alert(`Could not add ${name} to the tracker: ${(e as Error).message}`)
+      return
+    }
     setAddCompetitorId((prev) => { const next = { ...prev }; delete next[name]; return next })
     setAddImo((prev) => { const next = { ...prev }; delete next[name]; return next })
     qc.invalidateQueries({ queryKey: ["barges"] })

@@ -49,7 +49,7 @@ export class SupabaseDataProvider implements MaritimeDataProvider {
   }
 
   async upsertBarge(b: Partial<Barge> & { imo: string; name: string; competitor_id: string }): Promise<Barge> {
-    const { data, error } = await this.client().from("barges").upsert(b).select().single()
+    const { data, error } = await this.client().from("barges").upsert(b, { onConflict: "organization_id,imo" }).select().single()
     if (error) throw error
     return data as Barge
   }
