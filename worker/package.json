@@ -10,7 +10,8 @@
     "start": "tsx src/index.ts",
     "poll": "tsx src/pollOnce.ts",
     "build": "tsc",
-    "test": "vitest run"
+    "test": "vitest run",
+    "diag": "tsx src/diag.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.0",
