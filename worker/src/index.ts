@@ -10,7 +10,7 @@ if (!(globalThis as any).WebSocket) {
 }
 
 import { AisStreamWorkerClient } from "./aisClient.js"
-import { ShipFinderPoller } from "./shipfinderClient.js"
+import { ShipFinderPoller, ShipFinderFleetPoller, type FleetVessel } from "./shipfinderClient.js"
 import { EncounterTracker, type VesselFix } from "./detection.js"
 import { makeSupabaseWriter, type TrackedBarge } from "./supabaseWriter.js"
 import { makePositionWriter } from "./positionWriter.js"
@@ -18,7 +18,10 @@ import { makePositionWriter } from "./positionWriter.js"
 // Feeds: ShipFinder (polled, full anchorage coverage) when a key is set, and
 // AISStream (streamed, free) when its key is set. Both may run together.
 const SHIPFINDER_API_KEY = process.env.SHIPFINDER_API_KEY || ""
-const SHIPFINDER_POLL_MS = Number(process.env.SHIPFINDER_POLL_MS ?? 60_000)
+// "fleet" (default) polls only the tracked barges by MMSI — cheap, precise.
+// "zone" polls every vessel in the Fujairah polygon (needs that entitlement).
+const SHIPFINDER_MODE = (process.env.SHIPFINDER_MODE ?? "fleet").toLowerCase()
+const SHIPFINDER_POLL_MS = Number(process.env.SHIPFINDER_POLL_MS ?? (SHIPFINDER_MODE === "zone" ? 60_000 : 300_000))
 const AISSTREAM_API_KEY = process.env.AISSTREAM_API_KEY || ""
 if (!SHIPFINDER_API_KEY && !AISSTREAM_API_KEY) {
   console.error("Set SHIPFINDER_API_KEY and/or AISSTREAM_API_KEY")
@@ -95,13 +98,21 @@ async function main() {
 
   const sources: { name: string; start(): void; stop(): void }[] = []
   if (SHIPFINDER_API_KEY) {
-    const sf = new ShipFinderPoller(SHIPFINDER_API_KEY, SHIPFINDER_POLL_MS)
+    const sf =
+      SHIPFINDER_MODE === "zone"
+        ? new ShipFinderPoller(SHIPFINDER_API_KEY, SHIPFINDER_POLL_MS)
+        : new ShipFinderFleetPoller(
+            SHIPFINDER_API_KEY,
+            SHIPFINDER_POLL_MS,
+            () => [...bargesByImo.values()] as FleetVessel[],
+            (id, mmsi) => writer.setBargeMmsi(id, mmsi)
+          )
     sf.onFix(onFix)
     // Surface feed problems where they can be read without CI log access.
     sf.onError((err, n) => {
       if (n === 1 || n % 10 === 0) void writer.writeDiagnostic("shipfinder_error", { message: err.message, consecutive: n })
     })
-    sources.push({ name: "shipfinder", start: () => sf.start(), stop: () => sf.stop() })
+    sources.push({ name: `shipfinder:${SHIPFINDER_MODE}`, start: () => sf.start(), stop: () => sf.stop() })
   }
   if (AISSTREAM_API_KEY) {
     const ais = new AisStreamWorkerClient(AISSTREAM_API_KEY)

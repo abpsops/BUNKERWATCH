@@ -8,6 +8,7 @@ export interface TrackedBarge {
   competitor_name: string
   name: string
   imo: string
+  mmsi: string | null
 }
 
 export function makeSupabaseWriter(url: string, serviceRoleKey: string) {
@@ -24,7 +25,7 @@ export function makeSupabaseWriter(url: string, serviceRoleKey: string) {
     async loadTrackedBarges(): Promise<TrackedBarge[]> {
       const { data, error } = await client
         .from("barges")
-        .select("id, organization_id, competitor_id, name, imo, competitors(name)")
+        .select("id, organization_id, competitor_id, name, imo, mmsi, competitors(name)")
         .eq("active", true)
       if (error) throw error
       return (data ?? []).map((row: any) => ({
@@ -34,7 +35,14 @@ export function makeSupabaseWriter(url: string, serviceRoleKey: string) {
         competitor_name: row.competitors?.name ?? "Unknown",
         name: row.name,
         imo: row.imo,
+        mmsi: row.mmsi ?? null,
       }))
+    },
+
+    /** Cache an MMSI resolved from a feed so it isn't looked up again. */
+    async setBargeMmsi(bargeId: string, mmsi: string): Promise<void> {
+      const { error } = await client.from("barges").update({ mmsi }).eq("id", bargeId)
+      if (error) console.error("[fleet] mmsi cache failed:", error.message)
     },
 
     async writeDetectedEncounter(barge: TrackedBarge, enc: DetectedEncounter) {

@@ -51,3 +51,41 @@ describe("shipfinder client", () => {
     await expect(fetchZone("k", FUJAIRAH_ZONE, bad)).rejects.toThrow("status 14")
   })
 })
+
+import { resolveMmsiByImo, fetchMulti } from "../shipfinderClient.js"
+
+describe("shipfinder fleet mode", () => {
+  it("resolves an IMO to its most recently reported MMSI", async () => {
+    const fetchImpl = (async () => ({
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          status: 0, msg: "", total: 3,
+          data: [
+            { match_type: 5, mmsi: 356688000, imo: 9738777, call_sign: "", ship_name: "A", data_source: 0, last_time: 100 },
+            { match_type: 5, mmsi: 346559616, imo: 9738777, call_sign: "", ship_name: "A", data_source: 0, last_time: 900 },
+            { match_type: 1, mmsi: 525007112, imo: 0, call_sign: "", ship_name: "A", data_source: 0, last_time: 999 },
+          ],
+        }),
+    })) as unknown as typeof fetch
+    expect(await resolveMmsiByImo("k", "9738777", fetchImpl)).toBe(346559616)
+  })
+
+  it("returns null when no MMSI matches the IMO", async () => {
+    const fetchImpl = (async () => ({ ok: true, text: async () => JSON.stringify({ status: 0, msg: "", total: 0, data: [] }) })) as unknown as typeof fetch
+    expect(await resolveMmsiByImo("k", "1234567", fetchImpl)).toBeNull()
+  })
+
+  it("chunks multi-position requests at 100 MMSIs and drops 0,0 fixes", async () => {
+    const calls: string[] = []
+    const fetchImpl = (async (url: string) => {
+      calls.push(url)
+      return { ok: true, text: async () => JSON.stringify({ status: 0, msg: "", data: [rec({ mmsi: 1 }), rec({ mmsi: 2, lat: 0, lng: 0 })] }) }
+    }) as unknown as typeof fetch
+    const mmsis = Array.from({ length: 150 }, (_, i) => 100000000 + i)
+    const fixes = await fetchMulti("k", mmsis, fetchImpl)
+    expect(calls.length).toBe(2)
+    expect(new URL(calls[0]).searchParams.get("mmsis")!.split(",").length).toBe(100)
+    expect(fixes.length).toBe(2) // one valid per chunk
+  })
+})
