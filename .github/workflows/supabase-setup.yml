@@ -1,0 +1,121 @@
+name: Supabase Setup
+
+# One-shot bootstrap of a fresh Supabase project, run from GitHub Actions so
+# nobody has to paste SQL by hand. Safe to re-run: every step checks whether
+# its work is already done.
+#
+# Required repository secrets:
+#   SUPABASE_DB_URL            Session-pooler URI from the dashboard's Connect panel
+#   SUPABASE_URL               https://<ref>.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY  service_role key (Project Settings → API Keys)
+#   ADMIN_EMAIL / ADMIN_PASSWORD   first login for the app
+
+on:
+  workflow_dispatch:
+    inputs:
+      org_name:
+        description: "Organization name shown in the app"
+        default: "ABPS"
+        required: true
+      seed_fleet:
+        description: "Load the 23-competitor / 90-barge fleet from supabase/seed_real_fleet.sql"
+        type: boolean
+        default: true
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PGCONNECT_TIMEOUT: "15"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+
+      - name: Check connection
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+        run: psql "$DB" -Atc "select version()"
+
+      - name: Base schema (skipped if already applied)
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ "$(psql "$DB" -Atc "select to_regclass('public.organizations') is not null")" = "t" ]; then
+            echo "schema already present, skipping"
+          else
+            psql "$DB" -v ON_ERROR_STOP=1 -f supabase/schema.sql
+          fi
+
+      - name: AIS polling state table
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ "$(psql "$DB" -Atc "select to_regclass('public.ais_encounter_state') is not null")" = "t" ]; then
+            echo "already present, skipping"
+          else
+            psql "$DB" -v ON_ERROR_STOP=1 -f supabase/migration_ais_polling.sql
+          fi
+
+      - name: Live positions tables
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ "$(psql "$DB" -Atc "select to_regclass('public.vessel_positions') is not null")" = "t" ]; then
+            echo "already present, skipping"
+          else
+            psql "$DB" -v ON_ERROR_STOP=1 -f supabase/migration_live_positions.sql
+          fi
+
+      - name: Organization
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+          ORG_NAME: ${{ inputs.org_name }}
+        run: |
+          # Fixed id: supabase/seed_real_fleet.sql references this organization id.
+          psql "$DB" -v ON_ERROR_STOP=1 -v name="$ORG_NAME" -c \
+            "insert into organizations (id, name) values ('1c9acd49-103b-4455-aaae-f96933896350', :'name') on conflict (id) do nothing"
+
+      - name: Seed fleet
+        if: ${{ inputs.seed_fleet }}
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          n=$(psql "$DB" -Atc "select count(*) from competitors")
+          if [ "$n" != "0" ]; then
+            echo "competitors already present ($n), skipping seed"
+          else
+            psql "$DB" -v ON_ERROR_STOP=1 -f supabase/seed_real_fleet.sql
+          fi
+
+      - name: Admin user
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          set -e
+          uid=$(psql "$DB" -Atc "select id from auth.users where email = lower('$ADMIN_EMAIL') limit 1")
+          if [ -z "$uid" ]; then
+            body=$(jq -n --arg e "$ADMIN_EMAIL" --arg p "$ADMIN_PASSWORD" '{email:$e,password:$p,email_confirm:true}')
+            resp=$(curl -s -X POST "$SUPABASE_URL/auth/v1/admin/users" \
+              -H "apikey: $SERVICE_KEY" -H "Authorization: Bearer $SERVICE_KEY" \
+              -H "Content-Type: application/json" -d "$body")
+            uid=$(echo "$resp" | jq -r '.id // empty')
+            if [ -z "$uid" ]; then echo "user creation failed: $(echo "$resp" | jq -c 'del(.email)')"; exit 1; fi
+            echo "created auth user"
+          else
+            echo "auth user already exists"
+          fi
+          psql "$DB" -v ON_ERROR_STOP=1 -c \
+            "insert into user_profiles (id, organization_id, full_name, role) values ('$uid', '1c9acd49-103b-4455-aaae-f96933896350', 'Admin', 'ADMIN') on conflict (id) do nothing"
+
+      - name: Summary
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          psql "$DB" -c "select (select count(*) from organizations) orgs, (select count(*) from user_profiles) users, (select count(*) from competitors) competitors, (select count(*) from barges) barges, (select count(*) from vessel_positions) live_positions"
