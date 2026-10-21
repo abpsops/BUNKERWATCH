@@ -6,6 +6,12 @@ export interface VesselFix {
   longitude: number
   speedKnots: number | null
   timestamp: number // epoch ms
+  // Optional extras carried through to vessel_positions for the Live Map.
+  courseDeg?: number | null
+  headingDeg?: number | null
+  navStatus?: number | null
+  shipType?: number | null
+  destination?: string | null
 }
 
 export interface DetectedEncounter {

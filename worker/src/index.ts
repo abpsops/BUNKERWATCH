@@ -12,6 +12,7 @@ if (!(globalThis as any).WebSocket) {
 import { AisStreamWorkerClient } from "./aisClient.js"
 import { EncounterTracker, type VesselFix } from "./detection.js"
 import { makeSupabaseWriter, type TrackedBarge } from "./supabaseWriter.js"
+import { makePositionWriter } from "./positionWriter.js"
 
 const AISSTREAM_API_KEY = requireEnv("AISSTREAM_API_KEY")
 const SUPABASE_URL = requireEnv("SUPABASE_URL")
@@ -32,6 +33,8 @@ function requireEnv(name: string): string {
 
 async function main() {
   const writer = makeSupabaseWriter(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  const positions = makePositionWriter(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  positions.start()
   const tracker = new EncounterTracker()
 
   let bargesByImo = new Map<string, TrackedBarge>()
@@ -54,6 +57,7 @@ async function main() {
 
   client.onFix((fix) => {
     latestFixes.set(fix.mmsi, fix)
+    positions.record(fix) // every vessel in the box, for the Live Map
     if (!fix.imo) return // can't pair without IMO on at least one side being a barge
 
     const isBarge = bargesByImo.has(fix.imo)
@@ -89,9 +93,10 @@ async function main() {
 
   client.start()
 
-  const shutdown = () => {
+  const shutdown = async () => {
     console.log("shutting down…")
     client.stop()
+    await positions.flushNow()
     process.exit(0)
   }
   process.on("SIGINT", shutdown)

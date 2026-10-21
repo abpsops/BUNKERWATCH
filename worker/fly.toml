@@ -1,0 +1,20 @@
+# Fly.io config for the always-on AIS worker (Option B).
+#   fly launch --no-deploy   (once, from the worker/ directory; keep this file)
+#   fly secrets set AISSTREAM_API_KEY=... SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=...
+#   fly deploy
+app = "bunkerwatch-ais-worker"
+primary_region = "bom"   # Mumbai — closest region to Fujairah
+
+[build]
+  dockerfile = "Dockerfile"
+
+# No HTTP service: this is a background process, nothing listens on a port.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+
+[processes]
+  worker = "npm start"
+
+[[restart]]
+  policy = "always"

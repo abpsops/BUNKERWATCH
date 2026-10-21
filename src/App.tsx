@@ -10,6 +10,7 @@ import Vessels from "@/pages/Vessels/Vessels"
 import STSAnalysis from "@/pages/STSAnalysis/STSAnalysis"
 import VesselLookup from "@/pages/VesselLookup/VesselLookup"
 import BargeMap from "@/pages/BargeMap/BargeMap"
+import LiveMap from "@/pages/LiveMap/LiveMap"
 import Reports from "@/pages/Reports/Reports"
 import Login from "@/pages/Login/Login"
 import { useAuth } from "@/hooks/useAuth"
@@ -31,6 +32,7 @@ export default function App() {
             <Route path="/sts-analysis" element={<STSAnalysis />} />
             <Route path="/vessel-lookup" element={<VesselLookup />} />
             <Route path="/barge-map" element={<BargeMap />} />
+            <Route path="/live-map" element={<LiveMap />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/market-analyzer" element={<Reconciliation />} />
             <Route path="/reconciliation" element={<Navigate to="/market-analyzer" replace />} />

@@ -15,7 +15,10 @@ type FixListener = (fix: VesselFix) => void
  */
 export class AisStreamWorkerClient {
   private ws: WebSocket | null = null
-  private mmsiToStatic = new Map<number, { imo: string | null; name: string | null }>()
+  private mmsiToStatic = new Map<
+    number,
+    { imo: string | null; name: string | null; shipType: number | null; destination: string | null }
+  >()
   private listeners = new Set<FixListener>()
   private reconnectDelayMs = 2000
   private shouldRun = true
@@ -93,7 +96,9 @@ export class AisStreamWorkerClient {
       const imoRaw = data?.ImoNumber
       this.mmsiToStatic.set(mmsi, {
         imo: imoRaw && imoRaw > 0 ? String(imoRaw) : null,
-        name: msg.MetaData?.ShipName?.trim() || null,
+        name: msg.MetaData?.ShipName?.trim() || data?.Name?.trim() || null,
+        shipType: typeof data?.Type === "number" && data.Type > 0 ? data.Type : null,
+        destination: data?.Destination?.trim() || null,
       })
       return
     }
@@ -110,6 +115,11 @@ export class AisStreamWorkerClient {
         longitude: msg.MetaData?.longitude ?? pos.Longitude,
         speedKnots: pos.Sog ?? null,
         timestamp: Date.now(),
+        courseDeg: typeof pos.Cog === "number" && pos.Cog < 360 ? pos.Cog : null,
+        headingDeg: typeof pos.TrueHeading === "number" && pos.TrueHeading < 360 ? pos.TrueHeading : null,
+        navStatus: typeof pos.NavigationalStatus === "number" ? pos.NavigationalStatus : null,
+        shipType: known?.shipType ?? null,
+        destination: known?.destination ?? null,
       }
       this.listeners.forEach((fn) => fn(fix))
     }

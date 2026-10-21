@@ -170,3 +170,38 @@ information, so proximity + stillness is a strong signal, not proof.
 
 
 
+
+---
+
+## 6. Live Map (real-time AIS)
+
+`/live-map` shows every AIS-broadcasting vessel in the Fujairah / Khor Fakkan
+bounding box and updates in place as the worker receives positions. Tracked
+barges are drawn larger, in their competitor's colour, and listed in the
+side panel; everything else is coloured by AIS ship type (tanker, cargo,
+tug/service, other) and can be toggled.
+
+Setup, in order:
+
+1. **Database** – run `supabase/migration_live_positions.sql` in the SQL
+   Editor (after `schema.sql`). It creates `vessel_positions` (latest fix per
+   MMSI), `vessel_position_history` (90-day track points), read-only RLS,
+   and adds `vessel_positions` to the Realtime publication.
+2. **Worker** – both run modes now persist positions:
+   - *GitHub Actions poll* (`ais-poll.yml`) – no change needed; the map
+     refreshes roughly every 15 minutes.
+   - *Always-on* (recommended for a live map) – deploy `worker/` to Fly.io:
+     ```bash
+     cd worker
+     fly launch --no-deploy        # accepts the included fly.toml
+     fly secrets set AISSTREAM_API_KEY=… SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=…
+     fly deploy
+     fly logs                      # expect "[positions] upserted N vessels" every ~5 s
+     ```
+     Railway/Render work the same way (Dockerfile, three env vars).
+3. **Frontend** – nothing extra; the page subscribes through the existing
+   `VITE_SUPABASE_*` config. Without it, the page shows a "Demo mode" chip.
+
+Vessels silent for more than 2 hours drop off the map. History is pruned
+at 90 days by `prune_vessel_position_history()` — schedule it with pg_cron
+(see the comment at the bottom of the migration).

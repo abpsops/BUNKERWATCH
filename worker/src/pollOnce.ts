@@ -9,6 +9,7 @@ import { AisStreamWorkerClient } from "./aisClient.js"
 import { reconcile, type PersistedEncounter } from "./periodicReconcile.js"
 import type { VesselFix } from "./detection.js"
 import { makeSupabaseWriter, type TrackedBarge } from "./supabaseWriter.js"
+import { makePositionWriter } from "./positionWriter.js"
 
 const AISSTREAM_API_KEY = requireEnv("AISSTREAM_API_KEY")
 const SUPABASE_URL = requireEnv("SUPABASE_URL")
@@ -70,6 +71,11 @@ async function main() {
 
   const allFixes = [...fixesByMmsi.values()]
   console.log(`[ais] collected ${allFixes.length} vessel fixes this run`)
+
+  // Persist every fix for the Live Map (15-minute freshness in poll mode).
+  const positions = makePositionWriter(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  allFixes.forEach((f) => positions.record(f))
+  await positions.flushNow()
 
   const bargeFixes = allFixes.filter((f) => f.imo && bargesByImo.has(f.imo))
   const otherFixes = allFixes.filter((f) => !(f.imo && bargesByImo.has(f.imo)))
