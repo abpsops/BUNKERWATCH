@@ -154,7 +154,7 @@ export default function LiveMap() {
       />
 
       <div className="grid flex-1 gap-4 px-6 pb-10 lg:grid-cols-[280px_1fr]">
-        <aside className="glass flex flex-col rounded-xl p-4 lg:max-h-[calc(100vh-200px)]">
+        <aside className="glass flex min-h-0 max-h-[55vh] flex-col overflow-hidden rounded-xl p-4 lg:max-h-[calc(100vh-200px)]">
           <label className="relative block">
             <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-paper-500" />
             <input
@@ -181,11 +181,11 @@ export default function LiveMap() {
             ))}
           </ul>
 
-          <div className="mt-5 border-t border-ink-700 pt-4">
+          <div className="mt-5 flex min-h-0 flex-1 flex-col border-t border-ink-700 pt-4">
             <p className="text-xs text-paper-500">
               Tracked barges on AIS now: {trackedOnMap.length} of {barges.length}
             </p>
-            <ul className="scrollbar-thin mt-2 flex-1 space-y-1 overflow-y-auto text-sm">
+            <ul className="scrollbar-thin mt-2 min-h-0 flex-1 space-y-1 overflow-y-auto pr-1 text-sm">
               {trackedOnMap.map(({ p, barge, color }) => (
                 <li key={p.mmsi}>
                   <button
