@@ -26,8 +26,14 @@ export interface LivePosition {
 
 export type LiveStatus = "demo" | "connecting" | "live" | "reconnecting"
 
-/** Drop vessels not heard from in this long — they've left the box or gone dark. */
+/**
+ * Drop vessels not heard from in this long. Tracked barges come from a
+ * quota-limited feed that may only refresh a few times a day, so their last
+ * known position stays on the map for 3 days (greyed, with its age shown);
+ * untracked traffic from the streaming feed is swept after 2 hours.
+ */
 const STALE_MS = 2 * 60 * 60 * 1000
+const TRACKED_STALE_MS = 3 * 24 * 60 * 60 * 1000
 /** Poll interval. Plain selects don't count against Supabase's Realtime quota, so this is free. */
 const POLL_MS = 10_000
 
@@ -58,7 +64,7 @@ export function useLivePositions() {
 
     const poll = async () => {
       if (document.hidden) return
-      const since = lastSeenRef.current ?? new Date(Date.now() - STALE_MS).toISOString()
+      const since = lastSeenRef.current ?? new Date(Date.now() - TRACKED_STALE_MS).toISOString()
       const { data, error } = await client
         .from("vessel_positions")
         .select("*")
@@ -98,7 +104,8 @@ export function useLivePositions() {
         let changed = false
         const next = new Map(prev)
         for (const [mmsi, p] of prev) {
-          if (new Date(p.received_at).getTime() < cutoff) {
+          const limit = p.source === "shipfinder" ? Date.now() - TRACKED_STALE_MS : cutoff
+          if (new Date(p.received_at).getTime() < limit) {
             next.delete(mmsi)
             changed = true
           }

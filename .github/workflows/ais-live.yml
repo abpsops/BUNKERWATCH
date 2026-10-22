@@ -54,7 +54,7 @@ jobs:
         env:
           SHIPFINDER_API_KEY: ${{ secrets.SHIPFINDER_API_KEY }}
           SHIPFINDER_MODE: ${{ vars.SHIPFINDER_MODE || 'fleet' }}
-          SHIPFINDER_POLL_MS: ${{ vars.SHIPFINDER_POLL_MS || '300000' }}
+          SHIPFINDER_POLL_MS: ${{ vars.SHIPFINDER_POLL_MS || '21600000' }}
           SHIPFINDER_STS_SYNC_MS: ${{ vars.SHIPFINDER_STS_SYNC_MS || '21600000' }}
           SHIPFINDER_STS_ZONES: ${{ vars.SHIPFINDER_STS_ZONES || '2,1,3' }}
           AISSTREAM_API_KEY: ${{ secrets.AISSTREAM_API_KEY }}
@@ -62,7 +62,8 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           MAX_RUNTIME_MS: "20400000"
       - name: Dispatch next job
-        if: ${{ always() && vars.AIS_LIVE_CHAIN == 'on' }}
+        # Keeps the worker alive across the 6 h job limit. Set repo variable AIS_LIVE_CHAIN=off to pause.
+        if: ${{ always() && vars.AIS_LIVE_CHAIN != 'off' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run ais-live.yml --ref main

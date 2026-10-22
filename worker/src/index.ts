@@ -22,7 +22,9 @@ const SHIPFINDER_API_KEY = process.env.SHIPFINDER_API_KEY || ""
 // "fleet" (default) polls only the tracked barges by MMSI — cheap, precise.
 // "zone" polls every vessel in the Fujairah polygon (needs that entitlement).
 const SHIPFINDER_MODE = (process.env.SHIPFINDER_MODE ?? "fleet").toLowerCase()
-const SHIPFINDER_POLL_MS = Number(process.env.SHIPFINDER_POLL_MS ?? (SHIPFINDER_MODE === "zone" ? 60_000 : 300_000))
+// ShipFinder credits are spent per barge per poll; the trial tier is roughly
+// 100/day, so the default fleet interval is hours. Lower it once the quota is known.
+const SHIPFINDER_POLL_MS = Number(process.env.SHIPFINDER_POLL_MS ?? (SHIPFINDER_MODE === "zone" ? 60_000 : 6 * 60 * 60 * 1000))
 // STS activity sync: last 7 days of alongside events per barge, every
 // SHIPFINDER_STS_SYNC_MS (default 6 h), for the zones listed (1 port,
 // 2 anchorage, 3 offshore). Set SHIPFINDER_STS_SYNC_MS=0 to disable.

@@ -54,7 +54,8 @@ function ageLabel(iso: string) {
   const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000))
   if (mins < 1) return "just now"
   if (mins < 60) return `${mins} min ago`
-  return `${Math.floor(mins / 60)} h ${mins % 60} min ago`
+  if (mins < 24 * 60) return `${Math.floor(mins / 60)} h ${mins % 60} min ago`
+  return `${Math.floor(mins / 1440)} d ${Math.floor((mins % 1440) / 60)} h ago`
 }
 
 const iconCache = new Map<string, L.DivIcon>()
